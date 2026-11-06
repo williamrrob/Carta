@@ -48,6 +48,22 @@ release); search letters the query in place and marks matches on the map.
   Rebuild: `npm run build:sqlite && node scripts/build-etym-graph.js && node scripts/build-graph-layout.js`,
   then bump `V` in graph.js.
 
+**Reader (French / German).** `reader.js` + `reader.css`, opened from the menu or the home
+buttons (❦ Lire / ❦ Lesen). Data: `python3 scripts/build-reader.py` → `reader/<fr|de>/`
+(`lex.json` lemma table with English gloss + English cognate, `forms/<letter>.json` for pasted
+text, `q/<band>.json` canon-author quotations by difficulty). Sources: English-Wiktionary
+FR/DE dumps (`vendor-data/kaikki-French|German.jsonl.gz`) and the French/German editions
+(`frwikt-Francais.jsonl.gz`, `dewikt-Deutsch.jsonl.gz` from kaikki.org/frwiktionary,
+/dewiktionary). Author list = `CANON` in the script. Progress is per-device localStorage
+`carta.read.<lc>`, keyed by lemma. FR/DE words also sit on the map: `build-etym-graph.js`
+adds reader lemmas (zipf ≥ 2.8) with their own chains (`import-kaikki-etym.js fr|de`).
+Full rebuild order: `import-kaikki-etym.js` (en, fr, de) → `build-reader.py` →
+`build-etym-graph.js` → `import-kaikki-ancestors.js` → `build-etym-graph.js` →
+`build-graph-layout.js`.
+
+**Quiet layer.** `graph/quiet.bin`: Internet / neologism / nonce and slang-only headwords
+outside the top ranks — kept and searchable, not drawn until visited (menu toggle).
+
 Also: `words/<xx>.json` — 581 shards, ~222,600 entries (definitions, IPA,
 etymology text, synonyms; fields documented in `scripts/word.js`).
 Breakdown tiles: Wiktionary parts (`wp`, else parsed prose) → MorphoLex `b` →

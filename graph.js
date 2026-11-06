@@ -1013,6 +1013,19 @@
     }).catch((err) => { el.classList.add("map-failed"); console.error(err); });
   };
   RM.find = function (w) { if (!G) return -1; const i = G.word.get(w); if (i != null) return i; const j = G.wordLC.get(String(w).toLowerCase()); return j == null ? -1 : j; };
+  // a word in another language (the reader's French / German): exact, then case-folded
+  const byLang = new Map();
+  RM.findIn = function (langName, w) {
+    if (!G) return -1;
+    let m = byLang.get(langName);
+    if (!m) {
+      m = new Map(); byLang.set(langName, m);
+      const li = G.info.langs.indexOf(langName);
+      if (li >= 0) for (let i = 0; i < G.N; i++) if (G.lang[i] === li) { const t = G.labels[i]; if (!m.has(t)) m.set(t, i); const lc = t.toLowerCase(); if (!m.has(lc)) m.set(lc, i); }
+    }
+    const i = m.get(w); if (i != null) return i;
+    const j = m.get(String(w).toLowerCase()); return j == null ? -1 : j;
+  };
   RM.setInsets = function (o) { Object.assign(insets, o); dirty = true; };
   RM.focus = function (idx, o) {
     if (!G || idx < 0) return Promise.resolve();

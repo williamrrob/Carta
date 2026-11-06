@@ -178,6 +178,40 @@ for (const { word, ety } of allRows) {
   const d = o.doublets.filter((w) => headwords.has(w) && w !== word);
   if (d.length) doubletsOf.set(word, d);
 }
+// ---- French and German words on the same map ---------------------------------
+// The reader's lemmas (reader/<lc>/lex.json, scripts/build-reader.py) that are common or
+// met in its quotations join the graph with their own Wiktionary lines of descent, so
+// French liberté and English liberty meet at Latin lībertās, German Wasser and English
+// water at Proto-Germanic *watōr. Marked `lw` (learner word) for the client.
+for (const [lc, LN] of [["fr", "French"], ["de", "German"]]) {
+  const LEX = path.join(ROOT, "reader", lc, "lex.json"), KF = path.join(ROOT, "vendor-data", `kaikki-etym-${lc}.jsonl`);
+  if (!fs.existsSync(LEX) || !fs.existsSync(KF)) continue;
+  const lex = JSON.parse(fs.readFileSync(LEX, "utf8"));
+  const want = new Map();
+  for (const [w, g, , z] of lex) if (z >= 28) want.set(w, g);
+  let added = 0;
+  for (const line of fs.readFileSync(KF, "utf8").split("\n")) {
+    if (!line) continue;
+    const r = JSON.parse(line);
+    if (!want.has(r.w)) continue;
+    const ch = realOnly(r.ch), pa = (r.pa || []).filter((t) => realStep(typeof t === "string" ? { t } : t));
+    if (!ch.length && !pa.length) continue;
+    const me = node(LN, r.w, want.get(r.w));
+    nodes.get(me).lw = lc;
+    for (const p of pa) link(me, node(LN, p.t, p.g), isAffix(p.t) ? "aff" : "cmp");
+    let cur = me, child = null;
+    for (const st of ch) {
+      const k = node(st.l, st.t, st.g);
+      if ((st.j === "+" || st.j === "&") && child) { link(child, k, st.j === "+" ? (isAffix(st.t) ? "aff" : "cmp") : st.k || "der"); continue; }
+      if (isAffix(st.t) && child) { link(child, k, "aff"); continue; }
+      link(cur, k, st.k || "der");
+      child = cur; cur = k;
+    }
+    added++;
+  }
+  process.stderr.write(`${LN}: ${added} words placed on the map\n`);
+}
+
 // ---- ancestors' own entries (scripts/import-kaikki-ancestors.js) ------------
 // Where a line of descent stops at an ancestor form, continue from that form's
 // own Wiktionary entry, and give ancestor nodes the gloss their entry states.
@@ -317,11 +351,14 @@ fs.rmSync(OUT, { recursive: true, force: true });
 fs.mkdirSync(OUT, { recursive: true });
 const shards = {};
 let written = 0;
+// French / German reader words and their whole lines of descent stay, English descendants or not
+const keepLW = new Set();
+for (const [k, n] of nodes) if (n.lw) { keepLW.add(k); for (const a of ancestors(k, 14).keys()) keepLW.add(a); }
 for (const [k, n] of nodes) {
   const d = desc.get(k) || [];
   const isWord = !!n.hw;
   // keep a node only if something can reach it or it leads somewhere
-  if (!isWord && !d.length) continue;
+  if (!isWord && !d.length && !keepLW.has(k)) continue;
   const rec = { l: isWord ? "English" : top(n.labels), t: isWord ? k.slice(8) : display(n) };
   const g = top(n.glosses); if (g && !isWord) rec.g = g.length > 120 ? g.slice(0, 117) + "…" : g;
   if (n.tr && !isWord) rec.tr = n.tr;

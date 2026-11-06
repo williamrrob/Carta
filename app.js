@@ -2843,6 +2843,9 @@
   }
 
   // ---- the key ----
+  function quietShown() { try { return localStorage.getItem("rootwork.showQuiet") === "1"; } catch (e) { return false; } }
+  if (quietShown() && window.RootMap) RootMap.setOptions({ showQuiet: true });
+  window.Carta = { openNode: function (i, f) { return openNode(i, f); }, run: function (w) { return run(w); } };
   const keyBtn = $("mapKeyBtn"), keyEl = $("mapKey");
   if (keyBtn && keyEl && typeof keyBtn.addEventListener === "function") {
     keyBtn.addEventListener("click", function () {
@@ -2856,6 +2859,8 @@
       go.appendChild(act("⤨ Somewhere else", randomStart));
       go.appendChild(act("⑂ Doublet hunt", openHunt));
       go.appendChild(act("✦ Quiz", function () { if (typeof openQuiz === "function") openQuiz(); }));
+      go.appendChild(act("❦ Read French", function () { if (window.CartaReader) CartaReader.open("fr"); }));
+      go.appendChild(act("❦ Read German", function () { if (window.CartaReader) CartaReader.open("de"); }));
       const n = typeof getSaved === "function" ? getSaved().length : 0;
       go.appendChild(act("★ Saved" + (n ? " (" + n + ")" : ""), function () { if (typeof openSavedWords === "function") openSavedWords(); }));
       keyEl.appendChild(go);
@@ -2888,6 +2893,11 @@
       det.appendChild(fams);
       p("Descent: where a word came from and what came from it. Sense: its synonyms, wherever their histories put them. Doublets: one source that reached English twice.", det);
       keyEl.appendChild(det);
+      // the quiet layer: slang-only, Internet and brand-new words stay off the map until asked for
+      const ql = el("label", "menu-toggle"); const qc = el("input"); qc.type = "checkbox"; qc.checked = quietShown();
+      qc.addEventListener("change", function () { try { localStorage.setItem("rootwork.showQuiet", qc.checked ? "1" : ""); } catch (e) {} if (window.RootMap) RootMap.setOptions({ showQuiet: qc.checked }); });
+      ql.appendChild(qc); ql.appendChild(txtNode(" Show slang, Internet words and neologisms"));
+      keyEl.appendChild(ql);
       keyEl.appendChild(el("p", "lin-note", "Built only from Wiktionary, so the map and the text never disagree."));
       const acts = el("div", "key-actions");
       const upd = el("button", "lin-part", "Check for updates"); upd.type = "button";

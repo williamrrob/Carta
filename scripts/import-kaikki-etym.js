@@ -22,8 +22,12 @@ const path = require("path");
 const zlib = require("zlib");
 const readline = require("readline");
 const ROOT = path.join(__dirname, "..");
-const IN = path.join(ROOT, "vendor-data", "kaikki-en.jsonl.gz");
-const OUT = path.join(ROOT, "vendor-data", "kaikki-etym.jsonl");
+// language: en (default) | fr | de — the same parser reads the English-Wiktionary
+// entries of French and German words (vendor-data/kaikki-<French|German>.jsonl.gz)
+const LC = process.argv[2] || "en";
+const LNAME = { en: "English", fr: "French", de: "German" }[LC];
+const IN = path.join(ROOT, "vendor-data", LC === "en" ? "kaikki-en.jsonl.gz" : `kaikki-${LNAME}.jsonl.gz`);
+const OUT = path.join(ROOT, "vendor-data", LC === "en" ? "kaikki-etym.jsonl" : `kaikki-etym-${LC}.jsonl`);
 
 const CHAIN = new Map([
   ["inh", "inh"], ["inh+", "inh"], ["inh-lite", "inh"], ["inherited", "inh"],
@@ -60,7 +64,7 @@ function etyTerm(s) {
     if (c > 0) { const k = body.slice(0, c); if (!(k in mods)) mods[k] = body.slice(c + 1); }
     i = j;
   }
-  let code = "en";
+  let code = LC;
   const m = head.match(/^([a-z]{2,3}(?:-[a-z]{2,4}){0,2}):(.+)$/);
   if (m) { code = m[1]; head = m[2]; }
   if (mods.alt && (!head || head === "-")) head = mods.alt;
@@ -78,7 +82,7 @@ function etyNested(body) {
   return [kw, terms];
 }
 function parseEty(t, self) {
-  const a = t.args || {}; if (pos(a, "1") !== "en") return null;
+  const a = t.args || {}; if (pos(a, "1") !== LC) return null;
   const groups = []; let cur = null;
   for (const n of Object.keys(a).filter((x) => /^\d+$/.test(x) && Number(x) >= 2).sort((x, y) => x - y)) {
     const v = String(a[n]).trim();
@@ -91,13 +95,13 @@ function parseEty(t, self) {
     if (depth > 8 || !termStrs.length) return;
     const ts = termStrs.map(etyTerm).filter((x) => x.t && x.t !== "-");
     if (!ts.length) return;
-    if (ETY_CHAIN[kw] && !(kw === "from" && ts[0].code === "en")) {
+    if (ETY_CHAIN[kw] && !(kw === "from" && ts[0].code === LC)) {
       const x = ts[0];
-      if (x.code === "en" && x.t === self) return;
+      if (x.code === LC && x.t === self) return;
       ch.push({ c: x.code, t: x.t, g: x.g, k: ETY_CHAIN[kw] });
       if (x.ety) { const nn = etyNested(x.ety); if (nn) walk(nn[0], nn[1], depth + 1); }
     } else if (ETY_PARTS.has(kw)) {
-      if (depth === 0 && ts.every((x) => x.code === "en") && ts.length >= 2) { if (!pa) pa = ts.map((x) => (x.g ? { t: x.t, g: x.g } : { t: x.t })); }
+      if (depth === 0 && ts.every((x) => x.code === LC) && ts.length >= 2) { if (!pa) pa = ts.map((x) => (x.g ? { t: x.t, g: x.g } : { t: x.t })); }
       else if (depth > 0) {
         // components of an ancestor: the stem carries the line, affixes hang off it
         const stem = ts.find((x) => !/^-|-$/.test(x.t)) || ts[0];
@@ -105,7 +109,7 @@ function parseEty(t, self) {
         if (stem.ety) { const nn = etyNested(stem.ety); if (nn) walk(nn[0], nn[1], depth + 1); }
       }
     } else if (ETY_ONE.has(kw) && depth === 0) {
-      const x = ts[0]; if (!(x.code === "en" && x.t === self)) ch.push({ c: x.code, t: x.t, g: x.g, k: "der" });
+      const x = ts[0]; if (!(x.code === LC && x.t === self)) ch.push({ c: x.code, t: x.t, g: x.g, k: "der" });
     }
   };
   // the line of descent comes from the first chain group; parts from the first parts group
@@ -139,9 +143,9 @@ function chainStep(t) {
 }
 function partsOf(t) {
   const a = t.args || {};
-  if (pos(a, "1") !== "en") return null;
+  if (pos(a, "1") !== LC) return null;
   // a part tagged with another language isn't English surface analysis
-  for (const key of Object.keys(a)) if (/^lang\d+$/.test(key) && a[key] && a[key] !== "en") return null;
+  for (const key of Object.keys(a)) if (/^lang\d+$/.test(key) && a[key] && a[key] !== LC) return null;
   const nums = Object.keys(a).filter((x) => /^\d+$/.test(x) && Number(x) >= 2).sort((x, y) => x - y);
   let ps = nums.map((n) => ({ t: bare(a[n]), mg: modGloss(a[n]), i: Number(n) - 1 })).filter((p) => p.t);
   if (t.name === "prefix" || t.name === "pre") {
@@ -164,7 +168,7 @@ function cleanText(word, e) {
   let s = String(e || "");
   // the "Etymology tree" block (rendered {{etymon}} tree) ends with "English <word>"
   if (/^Etymology tree\b/.test(s)) {
-    const tag = "\nEnglish " + word + "\n";
+    const tag = "\n" + LNAME + " " + word + "\n";
     const k = s.indexOf(tag);
     s = k >= 0 ? s.slice(k + tag.length) : s.replace(/^Etymology tree[\s\S]*?\n(?=[A-Z][a-z]+ from|From |Borrowed |Inherited |Learned |Derived )/, "");
   }
@@ -181,7 +185,7 @@ async function main() {
     if (n % 200000 === 0) process.stderr.write(`  ${n} lines, ${out.size} words, ${((Date.now() - t0) / 1000).toFixed(0)}s\n`);
     let j;
     try { j = JSON.parse(line); } catch (e) { continue; }
-    if (j.lang_code !== "en" || !j.word) continue;
+    if (j.lang_code !== LC || !j.word) continue;
     const w = j.word;
     let r = out.get(w);
     if (!r) { r = { w }; out.set(w, r); }
@@ -208,7 +212,7 @@ async function main() {
         if (CHAIN.has(t.name)) {
           const s = chainStep(t);
           const last = ch[ch.length - 1];
-          if (s && !(s.c === "en" && s.t === w) && !(last && last.c === s.c && last.t === s.t)) {
+          if (s && !(s.c === LC && s.t === w) && !(last && last.c === s.c && last.t === s.t)) {
             if (sep != null) {
               const tail = sep.slice(-24);
               if (/\+\s*$/.test(tail)) s.j = "+";
@@ -231,7 +235,7 @@ async function main() {
         } else if (COG.has(t.name)) {
           const a = t.args || {};
           const code = pos(a, "1"), term = pos(a, "2") && bare(pos(a, "2"));
-          if (code && term && code !== "en") {
+          if (code && term && code !== LC) {
             const g = pos(a, "t") || pos(a, "gloss") || pos(a, "4");
             const exp = String(t.expansion || ""); const k = exp.indexOf(term);
             if (k > 0) vote(code, exp.slice(0, k).trim());
@@ -284,10 +288,11 @@ async function main() {
   const langs = {};
   Object.assign(langs, ETY_CODE_NAMES);
   for (const [code, m] of langVotes) { let b = null, c = -1; for (const [nm, v] of m) if (v > c) { b = nm; c = v; } langs[code] = b; }
-  fs.writeFileSync(path.join(ROOT, "vendor-data", "kaikki-langs.json"), JSON.stringify(langs, null, 0));
+  if (LC === "en") fs.writeFileSync(path.join(ROOT, "vendor-data", "kaikki-langs.json"), JSON.stringify(langs, null, 0));
   const ws = fs.createWriteStream(OUT);
   let withChain = 0, withParts = 0, withDbl = 0, withSS = 0, withSSgloss = 0;
   for (const r of out.values()) {
+    if (r.ch) { const seen = new Set(); r.ch = r.ch.filter((s) => { const k = s.c + "|" + s.t; if (seen.has(k)) return false; seen.add(k); return true; }); }
     if (r.ch) r.ch = r.ch.map((s) => { const o = { l: langs[s.c] || s.c, t: s.t, k: s.k }; if (s.g) o.g = s.g; if (s.j) o.j = s.j; return o; });
     if (r.cg) r.cg = r.cg.map((s) => { const o = { l: langs[s.c] || s.c, t: s.t }; if (s.g) o.g = s.g; return o; });
     if (r._n) { if (r._net && r._net * 2 >= r._n) r.q = "net"; else if (r._sl === r._n) r.q = "sl"; }
