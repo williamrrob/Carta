@@ -602,7 +602,7 @@
 :root[data-look="netscape"] .trace-cap { top: calc(env(safe-area-inset-top) + 84px); left: 50%; right: auto; width: min(360px, calc(100vw - 40px)); transform: translate(-50%, -4px);
   padding: 22px 12px 10px; background: #c0c0c0; color: #000; border: 2px solid; border-color: #fff #808080 #808080 #fff; box-shadow: 1px 1px 0 #000; align-items: flex-start; text-align: left; }
 :root[data-look="netscape"] .trace-cap.on { transform: translate(-50%, 0); }
-:root[data-look="netscape"] .trace-cap::before { content: "Rootwork — History"; position: absolute; left: 0; right: 0; top: 0; height: 18px; padding-left: 6px; background: #000080; color: #fff; font: bold 11px "Arimo", Arial, sans-serif; display: flex; align-items: center; }
+:root[data-look="netscape"] .trace-cap::before { content: "Carta — History"; position: absolute; left: 0; right: 0; top: 0; height: 18px; padding-left: 6px; background: #000080; color: #fff; font: bold 11px "Arimo", Arial, sans-serif; display: flex; align-items: center; }
 :root[data-look="netscape"] .trace-cap .tc-era { font: 11px "Arimo", Arial, sans-serif; text-transform: none; letter-spacing: 0; opacity: 1; color: #404040; }
 :root[data-look="netscape"] .trace-cap .tc-line { font: 16px "Tinos", "Times New Roman", serif; }
 

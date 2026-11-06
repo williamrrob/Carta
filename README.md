@@ -1,4 +1,4 @@
-# Rootwork — visual etymology
+# Carta — visual etymology
 
 A map of where English words come from. Every dictionary entry, and every
 older form its etymology names (Latin *hospitālis*, Old French *hostel*, PIE

@@ -35,7 +35,84 @@ const CHAIN = new Map([
 const PARTS = new Set(["af", "affix", "prefix", "pre", "suffix", "suf", "confix", "con", "compound", "com", "blend", "surf", "univerbation", "univ"]);
 const DOUBLET = new Set(["doublet", "dbt", "piecewise doublet"]);
 const COG = new Set(["cog", "cognate", "ncog", "noncog", "nc"]);
-const LEAD = /^(?:(?:Partly |Ultimately |Probably |Possibly )?(?:Inherited|Borrowed|Derived|Learned borrowing|Semi-learned borrowing|Unadapted borrowing|Orthographic borrowing|Calque|Partial calque|Semantic loan|Phono-semantic matching)\s+(?:from|of)\s+)/i;
+// ---- {{ety}} / {{etymon}} — Wiktionary's newer one-template etymology (~150k English
+// entries, 2025–26). args: 1=en, then a run of ":keyword" switches each followed by terms;
+// a term is "code:term<mod:val>…" (bare = English), and a <ety:kw<term>…> modifier nests
+// the term's own etymology, so one template can carry a whole line of descent.
+const ETY_CHAIN = { inh: "inh", bor: "bor", ubor: "bor", obor: "bor", lbor: "lbor", slbor: "lbor",
+  der: "der", uder: "der", cal: "cal", pcal: "cal", sl: "cal", psm: "cal", from: "der" };
+const ETY_PARTS = new Set(["af", "afeq", "affix", "compound", "com", "blend", "univ", "confix", "surf"]);
+const ETY_ONE = new Set(["deverbal", "clip", "clipping", "bf", "backform", "ellipsis", "abbrev", "short", "from"]);
+const ETY_CODE_NAMES = { en: "English", "la-lat": "Late Latin", "la-new": "New Latin", "la-med": "Medieval Latin", "la-vul": "Vulgar Latin",
+  "la-cla": "Classical Latin", "la-ecc": "Ecclesiastical Latin", "grc-koi": "Koine Greek", "grc-byz": "Byzantine Greek",
+  "frm": "Middle French", "fro": "Old French", "enm": "Middle English", "ang": "Old English", "gem-pro": "Proto-Germanic",
+  "ine-pro": "Proto-Indo-European", "gmw-pro": "Proto-West Germanic", "itc-pro": "Proto-Italic", "xno": "Anglo-Norman" };
+// split "a<b<c>><d>" style strings at depth 0
+function etyTerm(s) {
+  s = String(s || "").trim();
+  let i = 0, depth = 0; while (i < s.length && !(s[i] === "<" && depth === 0)) i++;
+  let head = s.slice(0, i).trim(); const mods = {};
+  while (i < s.length) {
+    if (s[i] !== "<") { i++; continue; }
+    let j = i + 1; depth = 1;
+    while (j < s.length && depth) { if (s[j] === "<") depth++; else if (s[j] === ">") depth--; j++; }
+    const body = s.slice(i + 1, j - 1), c = body.indexOf(":");
+    if (c > 0) { const k = body.slice(0, c); if (!(k in mods)) mods[k] = body.slice(c + 1); }
+    i = j;
+  }
+  let code = "en";
+  const m = head.match(/^([a-z]{2,3}(?:-[a-z]{2,4}){0,2}):(.+)$/);
+  if (m) { code = m[1]; head = m[2]; }
+  if (mods.alt && (!head || head === "-")) head = mods.alt;
+  return { code, t: head.trim(), g: mods.t || mods.gloss || undefined, ety: mods.ety };
+}
+// "kw<term><term>…" (a nested <ety:…> body) → [kw, [termString…]]
+function etyNested(body) {
+  const k = body.indexOf("<"); if (k < 0) return null;
+  const kw = body.slice(0, k), terms = []; let i = k;
+  while (i < body.length) {
+    if (body[i] !== "<") { i++; continue; }
+    let j = i + 1, d = 1; while (j < body.length && d) { if (body[j] === "<") d++; else if (body[j] === ">") d--; j++; }
+    terms.push(body.slice(i + 1, j - 1)); i = j;
+  }
+  return [kw, terms];
+}
+function parseEty(t, self) {
+  const a = t.args || {}; if (pos(a, "1") !== "en") return null;
+  const groups = []; let cur = null;
+  for (const n of Object.keys(a).filter((x) => /^\d+$/.test(x) && Number(x) >= 2).sort((x, y) => x - y)) {
+    const v = String(a[n]).trim();
+    if (v.startsWith(":")) { cur = { kw: v.slice(1), terms: [] }; groups.push(cur); continue; }
+    if (!cur) { cur = { kw: "af", terms: [] }; groups.push(cur); }
+    cur.terms.push(v);
+  }
+  const ch = []; let pa = null;
+  const walk = (kw, termStrs, depth) => {
+    if (depth > 8 || !termStrs.length) return;
+    const ts = termStrs.map(etyTerm).filter((x) => x.t && x.t !== "-");
+    if (!ts.length) return;
+    if (ETY_CHAIN[kw] && !(kw === "from" && ts[0].code === "en")) {
+      const x = ts[0];
+      if (x.code === "en" && x.t === self) return;
+      ch.push({ c: x.code, t: x.t, g: x.g, k: ETY_CHAIN[kw] });
+      if (x.ety) { const nn = etyNested(x.ety); if (nn) walk(nn[0], nn[1], depth + 1); }
+    } else if (ETY_PARTS.has(kw)) {
+      if (depth === 0 && ts.every((x) => x.code === "en") && ts.length >= 2) { if (!pa) pa = ts.map((x) => (x.g ? { t: x.t, g: x.g } : { t: x.t })); }
+      else if (depth > 0) {
+        // components of an ancestor: the stem carries the line, affixes hang off it
+        const stem = ts.find((x) => !/^-|-$/.test(x.t)) || ts[0];
+        for (const x of ts) ch.push({ c: x.code, t: x.t, g: x.g, k: "der", ...(x === stem ? {} : { j: "+" }) });
+        if (stem.ety) { const nn = etyNested(stem.ety); if (nn) walk(nn[0], nn[1], depth + 1); }
+      }
+    } else if (ETY_ONE.has(kw) && depth === 0) {
+      const x = ts[0]; if (!(x.code === "en" && x.t === self)) ch.push({ c: x.code, t: x.t, g: x.g, k: "der" });
+    }
+  };
+  // the line of descent comes from the first chain group; parts from the first parts group
+  for (const g of groups) { if (ETY_CHAIN[g.kw] && ch.length) continue; walk(g.kw, g.terms, 0); }
+  return { ch, pa };
+}
+const LEAD = /^(?:(?:Partly|Ultimately |Probably |Possibly )?(?:Inherited|Borrowed|Derived|Learned borrowing|Semi-learned borrowing|Unadapted borrowing|Orthographic borrowing|Calque|Partial calque|Semantic loan|Phono-semantic matching)\s+(?:from|of)\s+)/i;
 
 const langVotes = new Map(); // code -> Map(name -> n)
 function vote(code, name) {
@@ -130,7 +207,8 @@ async function main() {
         const sep = locate(t);
         if (CHAIN.has(t.name)) {
           const s = chainStep(t);
-          if (s && !(s.c === "en" && s.t === w)) {
+          const last = ch[ch.length - 1];
+          if (s && !(s.c === "en" && s.t === w) && !(last && last.c === s.c && last.t === s.t)) {
             if (sep != null) {
               const tail = sep.slice(-24);
               if (/\+\s*$/.test(tail)) s.j = "+";
@@ -140,6 +218,12 @@ async function main() {
           }
         }
         else if (PARTS.has(t.name)) { if (!pa) pa = partsOf(t); }
+        else if (t.name === "ety" || t.name === "etymon") {
+          const ex = String(t.expansion || "");
+          for (const m of ex.matchAll(/"lang_name" : "([^"]+)", "status" : "[^"]*", "lang" : "([^"]+)"|"lang_name" : "([^"]+)", "term" : "[^"]*", "status" : "[^"]*", "lang" : "([^"]+)"/g)) vote(m[2] || m[4], m[1] || m[3]);
+          const r2 = parseEty(t, w);
+          if (r2) { if (!ch.length && r2.ch.length) ch.push(...r2.ch); if (!pa && r2.pa) pa = r2.pa; }
+        }
         else if (DOUBLET.has(t.name)) {
           const a = t.args || {};
           Object.keys(a).filter((x) => /^\d+$/.test(x) && Number(x) >= 2).sort((x, y) => x - y)
@@ -163,6 +247,19 @@ async function main() {
     }
     // synonyms → the gloss of the sense they belong to
     const senses = j.senses || [];
+    // register counts for the map's quiet layer: senses that are Internet/neologism/nonce,
+    // and senses that are slang or vulgar (judged per word once every POS block is in)
+    { const NET = /^(?:Internet|neologism|nonce-word|Leet|protologism)$/, NETC = /Internet memes|Social media|leetspeak|neologisms|coined ex nihilo/;
+      const SL = /^(?:slang|vulgar|derogatory|offensive)$/;
+      const wcats = (j.categories || []).map((x) => (typeof x === "string" ? x : x.name || ""));
+      for (const s of senses) {
+        if ((s.tags || []).includes("form-of") || s.form_of) continue;
+        const cats = wcats.concat((s.categories || []).map((x) => (typeof x === "string" ? x : x.name || "")));
+        r._n = (r._n || 0) + 1;
+        if ((s.tags || []).some((t) => NET.test(t)) || cats.some((c) => NETC.test(c))) r._net = (r._net || 0) + 1;
+        if ((s.tags || []).some((t) => SL.test(t))) r._sl = (r._sl || 0) + 1;
+      }
+    }
     const add = (syn, gloss) => {
       if (!syn || syn === w) return;
       r.ss = r.ss || {};
@@ -185,6 +282,7 @@ async function main() {
   }
   // resolve language codes
   const langs = {};
+  Object.assign(langs, ETY_CODE_NAMES);
   for (const [code, m] of langVotes) { let b = null, c = -1; for (const [nm, v] of m) if (v > c) { b = nm; c = v; } langs[code] = b; }
   fs.writeFileSync(path.join(ROOT, "vendor-data", "kaikki-langs.json"), JSON.stringify(langs, null, 0));
   const ws = fs.createWriteStream(OUT);
@@ -192,6 +290,8 @@ async function main() {
   for (const r of out.values()) {
     if (r.ch) r.ch = r.ch.map((s) => { const o = { l: langs[s.c] || s.c, t: s.t, k: s.k }; if (s.g) o.g = s.g; if (s.j) o.j = s.j; return o; });
     if (r.cg) r.cg = r.cg.map((s) => { const o = { l: langs[s.c] || s.c, t: s.t }; if (s.g) o.g = s.g; return o; });
+    if (r._n) { if (r._net && r._net * 2 >= r._n) r.q = "net"; else if (r._sl === r._n) r.q = "sl"; }
+    delete r._n; delete r._net; delete r._sl;
     if (r.ch && r.ch.length) withChain++;
     if (r.pa) withParts++;
     if (r.db) withDbl++;

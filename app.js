@@ -2519,7 +2519,7 @@
     const Wd = window.innerWidth || 400, Hd = (window.innerHeight || 800) * 0.62;
     const inView = idx.filter(function (i) { const p = RootMap.screenOf(i); return p && p[0] > 0 && p[0] < Wd && p[1] > MAP_TOP && p[1] < Hd; }).length;
     if (qCap) qCap.textContent = list.length ? lookUI().found(list.length, inView) : "";
-    if (lookName === "netscape" && nsMsg) nsMsg.textContent = list.length ? "rootwork://" + list[0] : "Document: Done";
+    if (lookName === "netscape" && nsMsg) nsMsg.textContent = list.length ? "carta://" + list[0] : "Document: Done";
   }
 
   // wander: one meaningful hop — a word that shares an ancestor with this one, and why

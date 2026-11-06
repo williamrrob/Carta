@@ -1,4 +1,6 @@
-# Rootwork — assistant playbook
+# Carta (formerly Rootwork) — assistant playbook
+
+User-facing name is **Carta** (Latin *charta* → chart, card, French *carte*, German *Karte*). Internal identifiers (`rootwork.*` localStorage keys, `rootwork.sqlite`, sw cache name) keep the old name on purpose so saved state survives.
 
 Static, no-build web app (three `<script>` tags, JSON data files, GitHub
 Pages). **Main branch: `claude/visual-etymology-app-093c1d`** — pushing to it

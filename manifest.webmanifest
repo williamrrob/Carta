@@ -1,6 +1,6 @@
 {
-  "name": "Rootwork — visual etymology",
-  "short_name": "Rootwork",
+  "name": "Carta — visual etymology",
+  "short_name": "Carta",
   "description": "Type a word and watch it break into roots and affixes, see where each piece comes from, and how they build its meaning.",
   "start_url": "./",
   "scope": "./",

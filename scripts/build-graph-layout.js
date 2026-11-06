@@ -20,6 +20,7 @@
  *   graph/labels.json    [display term per node]
  *   graph/xy.bin         Float32 x,y per node
  *   graph/meta.bin       Uint8 family, size per node
+ *   graph/quiet.bin      bitset: headwords not drawn until visited (slang/Internet/neologism)
  *   graph/lang.bin       Uint16 language id per node
  *   graph/tree.bin       Int32 primary parent (-1 root)
  *   graph/links.bin      Int32 pairs child,parent (cross-links)
@@ -317,6 +318,30 @@ fs.writeFileSync(path.join(OUT, "links.bin"), Buffer.from(Int32Array.from(cross)
 const rankMap = new Map();
 for (const line of fs.readFileSync(path.join(ROOT, "review", "ranks.tsv"), "utf8").split("\n").slice(1)) {
   const t = line.lastIndexOf("\t"); if (t > 0) rankMap.set(line.slice(0, t), Number(line.slice(t + 1)));
+}
+// the quiet layer: Internet slang, neologisms, nonce words, and slang-only words, unless
+// they're common enough to matter (Wiktionary register labels; frequency rescues "surfing").
+// They stay on the map (search and links still reach them) but aren't drawn until visited.
+{
+  const quiet = new Uint8Array(Math.ceil(N / 8));
+  const KE = path.join(ROOT, "vendor-data", "kaikki-etym.jsonl");
+  let nq = 0;
+  if (fs.existsSync(KE)) {
+    const q = new Map();
+    for (const line of fs.readFileSync(KE, "utf8").split("\n")) {
+      const k = line.indexOf('"q":"'); if (k < 0) continue;
+      const r = JSON.parse(line); q.set(r.w, r.q);
+    }
+    for (let i = 0; i < N; i++) {
+      const r = recs.get(keys[i]); if (r.l !== "English" || !r.hw) continue;
+      const tag = q.get(r.t); if (!tag) continue;
+      const rk = rankMap.get(r.t);
+      if (rk != null && rk <= (tag === "net" ? 15000 : 25000)) continue;
+      quiet[i >> 3] |= 1 << (i & 7); nq++;
+    }
+  }
+  fs.writeFileSync(path.join(OUT, "quiet.bin"), Buffer.from(quiet.buffer));
+  process.stderr.write(`${nq} words in the quiet layer\n`);
 }
 const starts = [];
 for (let i = 0; i < N; i++) {

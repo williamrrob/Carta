@@ -24,7 +24,7 @@
  */
 (function () {
   "use strict";
-  const V = "5";
+  const V = "6";
   const DPR = Math.min(2, window.devicePixelRatio || 1);
 
   // ---- palettes (index = family in info.families) -----------------------------
@@ -107,14 +107,18 @@
   // ---- data -------------------------------------------------------------------------
   async function load() {
     const get = (p) => fetch("graph/" + p + "?v=" + V);
-    const [info, labels, xy, meta, lang, tree, links] = await Promise.all([
+    const [info, labels, xy, meta, lang, tree, links, quiet] = await Promise.all([
       get("info.json").then((r) => r.json()), get("labels.json").then((r) => r.json()),
       get("xy.bin").then((r) => r.arrayBuffer()), get("meta.bin").then((r) => r.arrayBuffer()),
       get("lang.bin").then((r) => r.arrayBuffer()), get("tree.bin").then((r) => r.arrayBuffer()),
       get("links.bin").then((r) => r.arrayBuffer()),
+      get("quiet.bin").then((r) => (r.ok ? r.arrayBuffer() : null)).catch(() => null),
     ]);
     const N = info.n;
     G = { info, N, labels, xy: new Float32Array(xy), meta: new Uint8Array(meta), lang: new Uint16Array(lang), parent: new Int32Array(tree), links: new Int32Array(links) };
+    // quiet layer (slang / Internet / neologisms): kept, findable, not drawn until visited
+    const qb = quiet ? new Uint8Array(quiet) : null;
+    G.quiet = (i) => (qb ? (qb[i >> 3] >> (i & 7)) & 1 : 0);
     // English headword index (exact, then lowercase)
     G.word = new Map(); G.wordLC = new Map();
     for (let i = 0; i < N; i++) if (G.lang[i] === 0) { G.word.set(labels[i], i); const lc = labels[i].toLowerCase(); if (!G.wordLC.has(lc)) G.wordLC.set(lc, i); }
@@ -168,7 +172,8 @@
     void main(){
       vec2 q = (p - ctr) * s;
       gl_Position = vec4(q.x / (res.x*0.5), -q.y / (res.y*0.5), 0.0, 1.0);
-      gl_PointSize = clamp((1.0 + sz / 40.0) * k, 1.0, 34.0) * dpr;
+      gl_PointSize = sz < 0.0 ? 0.0 : clamp((1.0 + sz / 40.0) * k, 1.0, 34.0) * dpr;
+      if (sz < 0.0) gl_Position = vec4(2.0, 2.0, 2.0, 1.0); // quiet layer: off-screen
       vc = c;
     }`;
   const FS_PT = `
@@ -219,16 +224,17 @@
       const r = Math.hypot(G.xy[i * 2], G.xy[i * 2 + 1]);
       const dim = r >= dustStart - 1 ? 0.45 : 1;
       col[i * 3] = c[0] * dim; col[i * 3 + 1] = c[1] * dim; col[i * 3 + 2] = c[2] * dim;
-      sz[i] = G.meta[i * 2 + 1];
+      sz[i] = OPT.showQuiet || !G.quiet(i) ? G.meta[i * 2 + 1] : -1;
     }
     G.col = col;
     B.pos = buf(G.xy); B.col = buf(col); B.sz = buf(sz);
     // tree edges
-    let m = 0; for (let i = 0; i < N; i++) if (G.parent[i] >= 0) m++;
+    const hid = (i) => !OPT.showQuiet && G.quiet(i);
+    let m = 0; for (let i = 0; i < N; i++) if (G.parent[i] >= 0 && !hid(i)) m++;
     const lp = new Float32Array(m * 4), lc = new Float32Array(m * 6);
     let j = 0;
     for (let i = 0; i < N; i++) {
-      const p = G.parent[i]; if (p < 0) continue;
+      const p = G.parent[i]; if (p < 0 || hid(i)) continue;
       lp[j * 4] = G.xy[i * 2]; lp[j * 4 + 1] = G.xy[i * 2 + 1]; lp[j * 4 + 2] = G.xy[p * 2]; lp[j * 4 + 3] = G.xy[p * 2 + 1];
       const lr = LOOK.lineRGB ? LOOK.lineRGB.split(",").map((v) => v / 255) : [col[i * 3], col[i * 3 + 1], col[i * 3 + 2]];
       for (let t = 0; t < 2; t++) { lc[j * 6 + t * 3] = lr[0]; lc[j * 6 + t * 3 + 1] = lr[1]; lc[j * 6 + t * 3 + 2] = lr[2]; }
@@ -630,6 +636,7 @@
       if (x < -40 || x > W + 40 || y < -20 || y > H + 20) continue;
       if (!inWindow(x, y)) continue;
       const isLit = focus && focus.lit.has(i);
+      if (!isLit && !OPT.showQuiet && G.quiet(i)) continue;
       if (focus && !OPT.otherFamilies && !isLit && G.tree && G.tree[i] !== G.tree[focus.idx]) continue;
       const isWord = G.lang[i] === 0;
       const big = isLit && i === focus.idx;
@@ -726,7 +733,7 @@
   // glosses come from the per-node detail chunks; fetched on demand, drawn when they land
   const GLOSS_ZOOM = 9;
   // presentation options (kept switchable while the look is being settled)
-  const OPT = { glossFocused: false, hereRing: true, otherFamilies: true };
+  const OPT = { glossFocused: false, hereRing: true, otherFamilies: true, showQuiet: false };
   const READ_ZOOM = 2; // from here every node is a label candidate
   function glossOf(i) {
     const c = Math.floor(i / G.info.chunk);
@@ -795,6 +802,7 @@
       const c = gx + gy * G.gw;
       for (let k = G.cellStart[c]; k < G.cellStart[c + 1]; k++) {
         const i = G.cellItems[k];
+        if (!OPT.showQuiet && G.quiet(i) && !(focus && focus.lit.has(i))) continue;
         // bigger dots are easier to hit
         const d = Math.hypot(G.xy[i * 2] - wx, G.xy[i * 2 + 1] - wy) - (G.meta[i * 2 + 1] / 400) * rad;
         if (d < bd) { bd = d; best = i; }
@@ -975,7 +983,7 @@
   };
   RM.cancelTrace = function () { traceToken++; };
   RM.traceLength = function (idx) { return G && idx >= 0 ? Math.min(9, 1 + RM.lineage(idx).length) : 0; };
-  RM.setOptions = function (o) { Object.assign(OPT, o || {}); dirty = true; };
+  RM.setOptions = function (o) { const q = OPT.showQuiet; Object.assign(OPT, o || {}); if (G && OPT.showQuiet !== q) buildBuffers(); dirty = true; };
 
   // ---- public ------------------------------------------------------------------------------
   RM.init = function (el, opts) {
