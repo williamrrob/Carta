@@ -272,7 +272,7 @@ def build(lc):
             L = lex[i]
             if L[3] >= 50 or L[5]: continue
             hard += 1
-        q = {"t": t, "r": ref[:160], "a": author, "w": ws, "h": round(hard / len(ws), 3)}
+        q = {"t": t, "r": ref[:160], "a": author, "w": [i for _, _, i in ws], "h": round(hard / len(ws), 2)}
         if y: q["y"] = y
         if en: q["en"] = re.sub(r"\s+", " ", en).strip()
         out.append(q); by_author[author] += 1
@@ -290,12 +290,12 @@ def build(lc):
     if os.path.isdir(D):
         import shutil; shutil.rmtree(D)
     os.makedirs(os.path.join(D, "q")); os.makedirs(os.path.join(D, "forms"))
-    used = set(i for q in kept for _, _, i in q["w"] if i >= 0)
+    used = set(i for q in kept for i in q["w"] if i >= 0)
     with open(os.path.join(D, "lex.json"), "w", encoding="utf-8") as f: json.dump(lex, f, ensure_ascii=False, separators=(",", ":"))
     shards = collections.defaultdict(dict)
     for form in forms:
         l = lemma_of(form)
-        if l:
+        if l and form != l.lower() and (lex[lid[l]][3] >= 15 or lid[l] in used):
             k = fold(form)[:1]
             if not ("a" <= k <= "z"): k = "_"
             shards[k][form] = lid[l]

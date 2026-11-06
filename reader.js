@@ -7,7 +7,7 @@
 (function () {
   "use strict";
   const LANG = { fr: { name: "French", own: "Français" }, de: { name: "German", own: "Deutsch" } };
-  const V = "1";
+  const V = "2";
   const $ = (id) => document.getElementById(id);
   const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
   const get = (p) => fetch("reader/" + p + "?v=" + V).then((r) => { if (!r.ok) throw new Error(p); return r.json(); });
@@ -63,7 +63,8 @@
     if (st.known[w]) return true;
     return L[3] >= st.z || (L[5] === 1 && L[3] >= 25);
   }
-  const unknownIn = (q) => { const u = new Set(); let n = 0; for (const [, , i] of q.w) { n++; if (i < 0 || !known(i)) u.add(i < 0 ? "?" + n : i); } return u; };
+  const idOf = (x) => (Array.isArray(x) ? x[2] : x);
+  const unknownIn = (q) => { const u = new Set(); let n = 0; for (const x of q.w) { const i = idOf(x); n++; if (i < 0 || !known(i)) u.add(i < 0 ? "?" + n : i); } return u; };
 
   // ---- picking the next quotation -----------------------------------------------
   async function pick() {
@@ -213,7 +214,8 @@
   async function next(commit) {
     if (commit && cur) {
       // words met and not tapped: known now
-      for (const [, , i] of cur.w) {
+      for (const x of cur.w) {
+        const i = idOf(x);
         if (i < 0) continue;
         const L = D[lc].lex[i];
         if (!st.learn[L[0]] && !known(i)) st.known[L[0]] = 1;
@@ -226,7 +228,11 @@
     const q = await pick();
     cur = q;
     if (!q) { body().innerHTML = '<p class="rd-note">Nothing left at this level' + (st.author ? " for this author" : "") + ".</p>"; footer(false); return; }
-    renderText(q, q.w);
+    // quotations store lemma ids only; positions come from the same tokenizer the build used
+    const tk = tokens(q.t, lc);
+    const w = tk.length === q.w.length ? tk.map(([s, e], n) => [s, e, q.w[n]]) : tk.map(([s, e]) => [s, e, -1]);
+    q.w = w;
+    renderText(q, w);
     footer(false);
   }
 
