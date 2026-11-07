@@ -96,6 +96,20 @@ def canon_re(lc):
     names = sorted({n.strip() for n in CANON[lc].replace("\n", " ").split(";") if n.strip()}, key=len, reverse=True)
     return re.compile(r"^\W*(?:\d{4},?\s*)?(" + "|".join(re.escape(n) for n in names) + r")\b")
 
+# a modern book: a citation naming a publisher, a novel, or "Author, Title, … year" with no press cues
+BOOKISH = {
+ "fr": re.compile(r"Gallimard|Seuil|Stock|Flammarion|Folio|Livre de Poche|Grasset|Albin Michel|Julliard|Minuit|P\.?O\.?L|"
+                  r"Actes Sud|Laffont|Plon|Denoël|Fayard|Calmann|Mercure de France|Boréal|J’ai lu|J'ai lu|Rivages|Points|"
+                  r"Pocket|Phébus|Zulma|Verdier|Christian Bourgois|L’Olivier|Éditions de l’Olivier|Liana Levi|Sabine Wespieser|"
+                  r"roman|nouvelle|récit|Pléiade|Hetzel|Lemerre|Charpentier|Ollendorff|Dentu|Michel Lévy"),
+ "de": re.compile(r"Roman|Erzählung|Novelle|Suhrkamp|Fischer|Rowohlt|Hanser|dtv|Diogenes|Kiepenheuer|Ullstein|Piper|Aufbau|"
+                  r"Reclam|Goldmann|Heyne|Droemer|Kein & Aber|DuMont|Insel|Luchterhand|Wagenbach|btb|Blessing|Penguin|"
+                  r"Klett-Cotta|Matthes|Wallstein|Jung und Jung|Residenz|Zsolnay|Deuticke|Haffmans|Zweitausendeins"),
+}
+NOTBOOK = re.compile(r"In: |abgerufen|Abgerufen|Aufgerufen|URL|ISSN|Wikipedia|Lexikon|Handbuch|Einführung|Bulletin|Revue|"
+                     r"[Ss]ite |\.fr\b|\.com\b|\.de\b|\.net\b|\.ch\b|\.be\b|Fehlender Parameter|règles du jeu|thèse|"
+                     r"Dissertation|Bericht|Gesetz|Verordnung|Urkunde|Journal officiel|Bibel|Bible|traité de|manuel|Manuel|"
+                     r"dictionnaire|Dictionnaire|Wörterbuch|Encyclopédie|Recueil|Zeitung|Magazin|Zeitschrift|Spiegel|Stern")
 PRESS = re.compile(r"journal|magazine|AFP|Reuters|Wikipedia|Le Monde|Libération|Le Devoir|Le Figaro|Ouest|"
                    r"Télégramme|Die Zeit|Spiegel|Süddeutsche|FAZ|taz|Welt|Tagesschau|Wortschatz|20 minutes|Mediapart|"
                    r"Huffington|Le Point|L’Express|Le Parisien|Courrier|Stern|Focus|Bild|ZEIT", re.I)
@@ -244,13 +258,18 @@ def build(lc):
                 if not ref or PRESS.search(ref): continue
                 head = ref[:80]
                 m = CRE.search(head)
-                if not m: continue
+                if not m:
+                    # newer books are welcome too (plainer prose); periodicals, reference works and the web aren't
+                    if NOTBOOK.search(ref) or not BOOKISH[lc].search(ref): continue
+                    yy = year_of(ref)
+                    if not yy or yy < 1850: continue
                 pool.append((e.get("text", ""), ref, e.get("translation")))
                 n_native += 1
     print(f"native canon quotations {n_native}", flush=True)
     seen = set(); out = []
     for t, ref, en in pool:
         t = re.sub(r"\s+", " ", (t or "")).strip()
+        if t.startswith("„") and t.endswith("“") and t.count("„") == 1: t = t[1:-1].strip()  # de.wiktionary wraps every quotation
         if not t or t in seen: continue
         seen.add(t)
         toks = list(tokens(t, lc))
@@ -262,8 +281,12 @@ def build(lc):
             if i < 0: unk += 1
         if unk > max(2, len(toks) // 6): continue  # too many words we can't gloss
         m = CRE.search(ref[:80])
-        if not m: continue
-        author = m.group(1)
+        canon = 1 if m else 0
+        if m: author = m.group(1)
+        else:
+            author = re.split(r"\s*[,:(]\s*", re.sub(r"^\W*\d{4},?\s*", "", ref))[0].strip()
+            if BOOKISH[lc].search(author) or NOTBOOK.search(author): continue  # a publisher, not a person
+            if not (3 <= len(author) <= 40) or len(author.split()) > 5 or not re.match(r"^[A-ZÀ-Ý]", author) or re.search(r"\d", author): continue
         y = year_of(ref)
         # baseline difficulty: share of words outside the 1,500 most common that aren't transparent cognates
         hard = 0
@@ -272,15 +295,17 @@ def build(lc):
             L = lex[i]
             if L[3] >= 50 or L[5]: continue
             hard += 1
-        q = {"t": t, "r": ref[:160], "a": author, "w": [i for _, _, i in ws], "h": round(hard / len(ws), 2)}
+        q = {"t": t, "r": ref[:110], "a": author, "w": [i for _, _, i in ws], "h": round(hard / len(ws), 2)}
         if y: q["y"] = y
+        if canon: q["c"] = 1
         if en: q["en"] = re.sub(r"\s+", " ", en).strip()
         out.append(q); by_author[author] += 1
     # keep author variety: at most 300 per author, preferring the easier and the translated
     out.sort(key=lambda q: (q["a"], 0 if q.get("en") else 1, q["h"]))
     kept, cnt = [], collections.Counter()
     for q in out:
-        if cnt[q["a"]] >= 300 and q["a"] not in ("Michel Houellebecq", "Jacques Derrida"): continue
+        cap = 300 if q.get("c") else 40   # many newer authors, a handful each
+        if cnt[q["a"]] >= cap and q["a"] not in ("Michel Houellebecq", "Jacques Derrida"): continue
         cnt[q["a"]] += 1; kept.append(q)
     kept.sort(key=lambda q: q["h"])
     print(f"quotations kept {len(kept)} from {len(out)}; authors {len(cnt)}", flush=True)
@@ -312,8 +337,9 @@ def build(lc):
     for bi in range(len(bands)):
         for q in kept[bi * BAND:(bi + 1) * BAND]:
             if not ab[q["a"]] or ab[q["a"]][-1] != bi: ab[q["a"]].append(bi)
-    idx = {"lang": lc, "lex": len(lex), "quotes": len(kept), "bands": bands, "ab": ab,
-           "authors": cnt.most_common(), "formShards": sorted(shards)}
+    canon_authors = sorted({q["a"] for q in kept if q.get("c")})
+    idx = {"lang": lc, "lex": len(lex), "quotes": len(kept), "bands": bands, "ab": ab, "canon": canon_authors,
+           "authors": [x for x in cnt.most_common() if x[0] in set(canon_authors)], "formShards": sorted(shards)}
     with open(os.path.join(D, "index.json"), "w", encoding="utf-8") as f: json.dump(idx, f, ensure_ascii=False, separators=(",", ":"))
     print(f"wrote reader/{lc}: {len(bands)} bands; top authors {cnt.most_common(12)}", flush=True)
 

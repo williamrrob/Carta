@@ -61,6 +61,18 @@ Full rebuild order: `import-kaikki-etym.js` (en, fr, de) → `build-reader.py` �
 `build-etym-graph.js` → `import-kaikki-ancestors.js` → `build-etym-graph.js` →
 `build-graph-layout.js`.
 
+Reader behaviour worth knowing before changing it: tapped words go into `learn`
+({n, s, due, src}) and return on a spaced schedule (`INT` in reader.js); reading past a
+due word without tapping advances it, five passes = learned. Read-aloud and tap-to-say use
+the device's Web Speech voices; "Whole sentence" uses the browser's `Translator` API when
+present, else selects the passage for the system Translate menu. Quotations: canon authors
+(`c:1`) plus post-1850 books (publisher/novel cues, no periodicals or web); menu filters
+Classics only / Newer books / one canon author.
+
+Prose etymologies: `scripts/etym-derive.js` handles in-language derivations etym-parse.js
+leaves empty ("Compound of melon + head", "Deverbal from annoncer", "From nachlassen"),
+guarded by "the form must be a real headword". Used for English prose rows and FR/DE.
+
 **Quiet layer.** `graph/quiet.bin`: Internet / neologism / nonce and slang-only headwords
 outside the top ranks — kept and searchable, not drawn until visited (menu toggle).
 

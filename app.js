@@ -2369,10 +2369,7 @@
   }
   const randomBtn = $("randomBtn");
   if (randomBtn && typeof randomBtn.addEventListener === "function") randomBtn.addEventListener("click", randomStart);
-  if (window.RootMap && !/word=/.test(location.hash || "") && typeof mapEl.appendChild === "function") {
-    // first open: a beat on the whole map, then fly somewhere real
-    RootMap.ready.then(function () { setTimeout(function () { if (!currentWord && !mapWord) randomStart(); }, 900); });
-  }
+  // first open stays on the whole map; "Somewhere else" is the way to be dropped at random
 
 
   // ---------- looks: five interfaces, each traced to one real source ----------

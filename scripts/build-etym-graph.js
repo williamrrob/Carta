@@ -23,6 +23,12 @@ const fs = require("fs");
 const path = require("path");
 const { DatabaseSync } = require("node:sqlite");
 const P = require("../etym-parse.js");
+const { derive } = require("./etym-derive.js");
+const LANGNAMES = (() => {
+  try { return [...new Set(Object.values(JSON.parse(fs.readFileSync(path.join(__dirname, "..", "vendor-data", "kaikki-langs.json"), "utf8"))))].sort((a, b) => b.length - a.length); }
+  catch (e) { return ["Latin", "Ancient Greek", "French", "German", "Old French", "Old English"]; }
+})();
+let fromDerive = 0;
 const ROOT = path.join(__dirname, "..");
 const OUT = path.join(ROOT, "g");
 
@@ -155,6 +161,15 @@ for (const { word, ety } of allRows) {
   const o = P.parse(word, ety);
   const me = node("English", word);
   nodes.get(me).hw = 1;
+  if (!o.parts.length && !realOnly(o.chain).length) {
+    // "Compound of melon + head", "Clipping of academic": derivations inside English
+    const dv = derive(word, ety, (t) => headwords.has(t), LANGNAMES, "English");
+    if (dv) {
+      fromDerive++;
+      for (const p of dv.parts) { const pk = node(p.l, p.t); if (p.l === "English" && headwords.has(p.t)) nodes.get(pk).hw = 1; link(me, pk, p.aff ? "aff" : "cmp"); }
+      if (dv.parent) { const pk = node("English", dv.parent.t); if (headwords.has(dv.parent.t)) nodes.get(pk).hw = 1; link(me, pk, "der"); }
+    }
+  }
   // English surface analysis: incredible ← in- + credible
   for (const p of o.parts) {
     const pk = node("English", p.t, p.g);
@@ -187,18 +202,15 @@ for (const [lc, LN] of [["fr", "French"], ["de", "German"]]) {
   const LEX = path.join(ROOT, "reader", lc, "lex.json"), KF = path.join(ROOT, "vendor-data", `kaikki-etym-${lc}.jsonl`);
   if (!fs.existsSync(LEX) || !fs.existsSync(KF)) continue;
   const lex = JSON.parse(fs.readFileSync(LEX, "utf8"));
-  const want = new Map();
-  for (const [w, g, , z] of lex) if (z >= 28) want.set(w, g);
-  let added = 0;
-  for (const line of fs.readFileSync(KF, "utf8").split("\n")) {
-    if (!line) continue;
-    const r = JSON.parse(line);
-    if (!want.has(r.w)) continue;
-    const ch = realOnly(r.ch), pa = (r.pa || []).filter((t) => realStep(typeof t === "string" ? { t } : t));
-    if (!ch.length && !pa.length) continue;
-    const me = node(LN, r.w, want.get(r.w));
-    nodes.get(me).lw = lc;
-    for (const p of pa) link(me, node(LN, p.t, p.g), isAffix(p.t) ? "aff" : "cmp");
+  const gloss = new Map(lex.map((x) => [x[0], x[1]]));
+  const recs = new Map();
+  for (const line of fs.readFileSync(KF, "utf8").split("\n")) { if (line) { const r = JSON.parse(line); if (!recs.has(r.w)) recs.set(r.w, r); } }
+  const isWord = (t) => gloss.has(t) || recs.has(t);
+  // common words first; anything they derive from (annonce ← annoncer) is pulled in after
+  const queue = lex.filter((x) => x[3] >= 28).map((x) => x[0]);
+  const done = new Set();
+  let added = 0, viaTpl = 0, viaProse = 0, viaDerive = 0;
+  const walkChain = (me, ch) => {
     let cur = me, child = null;
     for (const st of ch) {
       const k = node(st.l, st.t, st.g);
@@ -207,10 +219,48 @@ for (const [lc, LN] of [["fr", "French"], ["de", "German"]]) {
       link(cur, k, st.k || "der");
       child = cur; cur = k;
     }
-    added++;
+  };
+  for (let qi = 0; qi < queue.length; qi++) {
+    const w = queue[qi];
+    if (done.has(w)) continue;
+    done.add(w);
+    const r = recs.get(w);
+    if (!r) continue;
+    const ch = realOnly(r.ch), pa = (r.pa || []).filter((t) => realStep(typeof t === "string" ? { t } : t));
+    const me = () => { const k = node(LN, w, gloss.get(w)); nodes.get(k).lw = lc; return k; };
+    if (ch.length || pa.length) {
+      const k = me();
+      for (const p of pa) { link(k, node(LN, p.t, p.g), isAffix(p.t) ? "aff" : "cmp"); if (!isAffix(p.t) && recs.has(p.t)) queue.push(p.t); }
+      walkChain(k, ch);
+      viaTpl++; added++;
+      continue;
+    }
+    if (!r.e) continue;
+    // prose with named languages: "From Old French querele, from Latin querella"
+    const o = P.parse(w, r.e);
+    const pc = realOnly(o.chain);
+    if (pc.length || o.parts.length) {
+      const k = me();
+      for (const p of o.parts) { link(k, node(LN, p.t, p.g), p.aff ? "aff" : "cmp"); if (!p.aff && recs.has(p.t)) queue.push(p.t); }
+      let cur = k;
+      for (const step of pc) {
+        if (step.p) { for (const c of step.p) link(cur, node(c.l, c.t, c.g, c.tr), c.aff ? "aff" : "cmp"); const m = mainComp(step.p); cur = keyOf(m.l, m.t); }
+        else { const k2 = node(step.l, step.t, step.g, step.tr); link(cur, k2, step.k || "der"); cur = k2; }
+      }
+      viaProse++; added++;
+      continue;
+    }
+    // prose inside the language: "Deverbal from annoncer", "From nachlassen", "Neu + Bau"
+    const dv = derive(w, r.e, isWord, LANGNAMES, LN);
+    if (!dv) continue;
+    const k = me();
+    for (const p of dv.parts) { link(k, node(p.l, p.t, p.l === LN ? gloss.get(p.t) : undefined), p.aff ? "aff" : "cmp"); if (p.l === LN && !p.aff) queue.push(p.t); }
+    if (dv.parent) { link(k, node(LN, dv.parent.t, gloss.get(dv.parent.t)), "der"); queue.push(dv.parent.t); }
+    viaDerive++; added++;
   }
-  process.stderr.write(`${LN}: ${added} words placed on the map\n`);
+  process.stderr.write(`${LN}: ${added} words placed on the map (${viaTpl} templates, ${viaProse} prose, ${viaDerive} in-language derivations)\n`);
 }
+process.stderr.write(`English: ${fromDerive} more from in-language derivations\n`);
 
 // ---- ancestors' own entries (scripts/import-kaikki-ancestors.js) ------------
 // Where a line of descent stops at an ancestor form, continue from that form's

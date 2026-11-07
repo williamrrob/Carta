@@ -51,3 +51,15 @@
 .rd-mini { position: fixed; z-index: 59; left: 50%; transform: translateX(-50%); top: calc(env(safe-area-inset-top) + 10px);
   font: inherit; font-size: 0.9rem; color: var(--ink); background: var(--bg); border: 1px solid var(--bd); border-radius: 999px; padding: 7px 16px; cursor: pointer; }
 .rd-flash { position: absolute; left: 50%; bottom: 84px; transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 6px 14px; border-radius: 999px; font-size: 0.9rem; }
+.rd-audio { display: flex; gap: 8px; margin: -4px 0 16px; }
+.rd-listen.rd-on { background: color-mix(in srgb, var(--accent, #b5651d) 18%, transparent); }
+.rd-rate { min-width: 3.4em; }
+.rd-reading { background: color-mix(in srgb, var(--accent, #b5651d) 30%, transparent); }
+.rd-say { background: none; border: 0; font-size: 1.05rem; cursor: pointer; padding: 0 4px; color: inherit; }
+.rd-learn { text-decoration: underline; text-decoration-style: dashed; text-decoration-color: var(--accent, #b5651d); text-underline-offset: 5px; text-decoration-thickness: 1.5px; }
+.rd-c-met { margin: 4px 0 0; color: var(--muted); font-size: 0.85rem; font-style: italic; }
+.rd-stop { display: block; font-style: italic; margin-top: 2px; }
+.rd-whole.rd-on { background: color-mix(in srgb, var(--accent, #b5651d) 18%, transparent); }
+.rd-selectable, .rd-selectable .rd-w { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; cursor: text; }
+.rd-tr { font-size: 1.02rem; line-height: 1.55; margin: -4px 0 14px; padding-left: 10px; border-left: 2px solid var(--bd); }
+.rd-tr.rd-note { font-size: 0.88rem; }
