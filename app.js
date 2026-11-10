@@ -2937,7 +2937,7 @@
       // the quiet layer: slang-only, Internet and brand-new words stay off the map until asked for
       const ql = el("label", "menu-toggle"); const qc = el("input"); qc.type = "checkbox"; qc.checked = quietShown();
       qc.addEventListener("change", function () { try { localStorage.setItem("rootwork.showQuiet", qc.checked ? "1" : ""); } catch (e) {} if (window.RootMap) RootMap.setOptions({ showQuiet: qc.checked }); });
-      ql.appendChild(qc); ql.appendChild(txtNode(" Show slang, Internet words and neologisms"));
+      ql.appendChild(qc); ql.appendChild(txtNode(" Show slang, Internet words, neologisms and set phrases"));
       keyEl.appendChild(ql);
       keyEl.appendChild(el("p", "lin-note", "Built from one dictionary, so the map and the text never disagree."));
       const acts = el("div", "key-actions");

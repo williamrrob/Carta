@@ -340,6 +340,20 @@ for (const line of fs.readFileSync(path.join(ROOT, "review", "ranks.tsv"), "utf8
       quiet[i >> 3] |= 1 << (i & 7); nq++;
     }
   }
+  // set phrases built from English words ("lump together", "out of breath", "electric eel"):
+  // their history is just their parts, which are already on the map, so as points they're
+  // clutter. Quiet unless they came in whole from another language ("salt of the earth" ←
+  // Greek, "ruin value" ← Ruinenwert) or something descends from them.
+  {
+    const hasKid = new Uint8Array(N);
+    for (let i = 0; i < N; i++) if (parent[i] >= 0) hasKid[parent[i]] = 1;
+    for (let i = 0; i < N; i++) {
+      if (langArr[i] !== 0 || hasKid[i] || !/\S\s+\S/.test(labels[i] || "")) continue;
+      const p = parent[i];
+      if (p >= 0 && langArr[p] !== 0) continue;
+      if (!(quiet[i >> 3] & (1 << (i & 7)))) { quiet[i >> 3] |= 1 << (i & 7); nq++; }
+    }
+  }
   fs.writeFileSync(path.join(OUT, "quiet.bin"), Buffer.from(quiet.buffer));
   process.stderr.write(`${nq} words in the quiet layer\n`);
 }
