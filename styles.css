@@ -96,6 +96,7 @@ body {
      positioned ancestor, so the absolutely-positioned dock/overlays anchor to it. */
   position: fixed;
   inset: 0;
+  bottom: calc(0px - var(--vgap, 0px)); /* --vgap: index.html (installed, iOS under-reports the viewport) */
   display: flex;
   flex-direction: column;
   max-width: 720px;
@@ -1289,7 +1290,7 @@ button, .btn, .bp.tappable, .example, .history-chip, .related-chip, .suggest-ite
    that rises from the bottom while the map keeps that point lit above it. */
 .map { position: fixed; inset: 0; z-index: 0; background: var(--bg); overflow: hidden; touch-action: none; }
 .map canvas { position: absolute; inset: 0; display: block; }
-.map-labels { touch-action: none; cursor: grab; }
+.map-labels { touch-action: none; cursor: grab; will-change: transform; transform-origin: 50% 50%; }
 .map-labels:active { cursor: grabbing; }
 .map.map-nogl::after, .map.map-failed::after {
   content: "The map needs WebGL, which isn't available here. Search still works.";

@@ -21,9 +21,27 @@
          lift by --kb so the search bar rides just above the keyboard. Because the
          app itself never moves or resizes, none of the visualViewport timing/stale
          quirks can misposition it — worst case the dock lift is briefly off. */
+      /* Installed to the home screen, iOS can report a viewport shorter than the
+         screen (the app then stops ~90pt above the bottom edge). A standalone app
+         always owns the whole screen, so size it from the screen itself. */
+      var standalone = !!(navigator.standalone || (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches));
+      if (standalone) root.classList.add("standalone");
+      function appH() {
+        var h = window.innerHeight;
+        if (standalone && window.screen && screen.height) {
+          var land = window.innerWidth > window.innerHeight;
+          var sh = land ? Math.min(screen.width, screen.height) : Math.max(screen.width, screen.height);
+          if (sh > h) h = sh;
+        }
+        return h;
+      }
       function update() {
-        var kb = vv ? Math.max(0, window.innerHeight - vv.height) : 0;
+        var d = vv ? Math.max(0, window.innerHeight - vv.height) : 0;
+        var kb = d > 120 ? d : 0; // small differences are toolbars and rounding, not a keyboard
         root.style.setProperty("--kb", kb + "px");
+        /* how far the real screen runs past what iOS reports: every bottom-anchored
+           fixed layer reaches down by this much (looks.css, "standalone gap") */
+        root.style.setProperty("--vgap", Math.max(0, appH() - window.innerHeight) + "px");
       }
       update();
       window.addEventListener("resize", update);
@@ -46,16 +64,17 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Carta" />
-  <link rel="apple-touch-icon" href="icon.svg" />
+  <meta name="carta-build" content="2026-11-10.1" />
+  <link rel="apple-touch-icon" href="icon-180.png" />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
   <link rel="manifest" href="manifest.webmanifest" />
   <title>Carta — visual etymology</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&amp;family=Libre+Caslon+Display&amp;family=IM+Fell+English:ital@0;1&amp;family=IM+Fell+English+SC&amp;family=Overpass:ital,wght@0,400;0,600;0,700;1,600&amp;family=Overpass+Mono:wght@400;600&amp;family=Old+Standard+TT:ital,wght@0,400;0,700;1,400&amp;family=Playfair+Display:ital,wght@0,400;0,700;1,400&amp;family=Playfair+Display+SC:wght@400;700&amp;family=Tinos:ital,wght@0,400;0,700;1,400&amp;family=Arimo:wght@400;700&amp;family=Cousine&amp;display=swap" />
-  <link rel="stylesheet" href="styles.css?v=147" />
-  <link rel="stylesheet" href="looks.css?v=11" />
-  <link rel="stylesheet" href="reader.css?v=3" />
+  <link rel="stylesheet" href="styles.css?v=148" />
+  <link rel="stylesheet" href="looks.css?v=12" />
+  <link rel="stylesheet" href="reader.css?v=4" />
 </head>
 <body>
   <div class="map" id="map" aria-label="Map of English etymology"></div>
@@ -187,25 +206,38 @@
         navigator.serviceWorker.register("sw.js").catch(function () {});
       });
     }
-    /* manual refresh: clear caches + SW and hard-reload to pull the latest */
-    window.addEventListener("load", function () {
-      var rb = document.getElementById("refreshBtn");
-      if (!rb) return;
-      rb.addEventListener("click", function () {
-        rb.classList.add("spinning");
+    /* Check for updates: ask the server (past every cache) which build is live. Same build →
+       resolves "current" and nothing changes. Newer build → clear caches + SW and reload.
+       Offline → "offline". The menu shows the answer, so a tap never looks like it did nothing. */
+    function cartaBuild(html) { var m = /<meta name="carta-build" content="([^"]+)"/.exec(html || ""); return m ? m[1] : ""; }
+    var CARTA_BUILD = cartaBuild(document.documentElement.outerHTML);
+    window.cartaCheckUpdate = function () {
+      return fetch("./?check=" + Date.now(), { cache: "no-store" })
+        .then(function (r) { if (!r.ok) throw new Error(r.status); return r.text(); })
+        .then(function (html) {
+          var live = cartaBuild(html);
+          if (!live || live === CARTA_BUILD) return "current";
+          cartaReload(); return "updating";
+        })
+        .catch(function () { return "offline"; });
+    };
+    function cartaReload() {
         Promise.resolve()
           .then(function () { return window.caches ? caches.keys().then(function (ks) { return Promise.all(ks.map(function (k) { return caches.delete(k); })); }) : null; })
           .then(function () { return navigator.serviceWorker ? navigator.serviceWorker.getRegistrations().then(function (rs) { return Promise.all(rs.map(function (r) { return r.unregister(); })); }) : null; })
           .catch(function () {})
           .then(function () { location.reload(); });
-      });
+    }
+    window.addEventListener("load", function () {
+      var rb = document.getElementById("refreshBtn");
+      if (rb) rb.addEventListener("click", function () { window.cartaCheckUpdate(); });
     });
   </script>
   <script defer src="data.js?v=62"></script>
   <script defer src="engine.js?v=61"></script>
   <script defer src="etym-parse.js?v=4"></script>
-  <script defer src="graph.js?v=15"></script>
-  <script defer src="app.js?v=174"></script>
-  <script defer src="reader.js?v=4"></script>
+  <script defer src="graph.js?v=16"></script>
+  <script defer src="app.js?v=175"></script>
+  <script defer src="reader.js?v=5"></script>
 </body>
 </html>

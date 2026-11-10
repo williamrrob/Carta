@@ -84,6 +84,23 @@ heuristic engine (`engine.js` + `data.js`) as last resort.
 multi-source `trees/`, hand-authored `family/<root>.json` files and the curator
 editor were retired (Oct 2026) — don't reintroduce parallel sources.
 
+**Installed app (iOS home screen).** iOS under-reports the viewport in standalone mode;
+index.html sets `--vgap` (screen minus reported height) and every bottom-pinned fixed layer
+reaches down by it (looks.css "STANDALONE GAP"). New fixed layers anchored to the bottom must
+use `calc(... - var(--vgap, 0px))`. Icons: `icon-180/192/512.png` (iOS ignores SVG touch icons),
+rendered from `icon.svg`. "Check for updates" compares `<meta name="carta-build">` with the live
+copy — **bump that meta on every deploy**. Never touch speechSynthesis/audio at load (it pauses
+the user's music on iOS). No "Wiktionary" in user-visible text.
+
+**Design rule.** Every new control wears the active look: use the component classes the looks
+already style (`.menu-act`, `.lin-part`, `.co-act`…) and the look's variables; layout-only CSS
+in feature stylesheets. Check all five looks at phone and desktop widths before shipping.
+
+**Reader learning.** Per-word ease (`x.e`) shortens/lengthens intervals; lapses (tap or a
+translation miss after it started sticking) drop it. "Your English" translation check matches
+each content word's gloss stems against what you wrote; misses join your words; recent check
+scores move the level `st.z` (`adapt`). Word list: "Your words".
+
 ## Iron rules
 
 1. **Never open a `words/*.json` shard directly** (some are ~2MB). Use

@@ -10,6 +10,8 @@
   const V = "4";
   const $ = (id) => document.getElementById(id);
   const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
+  // reader controls are cut from the same stuff as the rest of the chrome: each look styles .menu-act
+  const btn = (cls, txt) => { const b = el("button", "menu-act " + cls, txt); b.type = "button"; return b; };
   const get = (p) => fetch("reader/" + p + "?v=" + V).then((r) => { if (!r.ok) throw new Error(p); return r.json(); });
 
   // same tokenizer as scripts/build-reader.py
@@ -35,15 +37,19 @@
   let speakOn = pref("speak", "1") === "1", rateIx = +pref("rate", "0") || 0, reading = null;
   function voiceFor(lc) {
     if (!SP) return null;
+    hookVoices();
     const vs = SP.getVoices().filter((v) => v.lang && v.lang.replace("_", "-").toLowerCase().startsWith(lc));
     if (!vs.length) return null;
     const best = (v) => (v.lang.replace("_", "-") === BCP[lc] ? 4 : 0) + (/premium|enhanced|natural|neural/i.test(v.name) ? 2 : 0) + (v.localService ? 1 : 0);
     return vs.sort((a, b) => best(b) - best(a))[0];
   }
-  if (SP && SP.addEventListener) SP.addEventListener("voiceschanged", () => { if (panel && !panel.hidden && lc) header(); });
+  // Nothing touches the speech engine until you ask for speech: on iOS, waking it claims the
+  // phone's audio and pauses whatever music is playing.
+  let voicesHooked = false;
+  function hookVoices() { if (!voicesHooked && SP && SP.addEventListener) { voicesHooked = true; SP.addEventListener("voiceschanged", () => { if (panel && !panel.hidden && lc) header(); }); } }
   // iOS only lets speech start inside a tap; speak an empty line at the tap to unlock it
   function unlock() { if (SP && !unlock.done) { try { SP.speak(new SpeechSynthesisUtterance("")); unlock.done = true; } catch (e) {} } }
-  function stopSpeech() { if (SP) SP.cancel(); reading = null; if (panel) panel.querySelectorAll(".rd-reading").forEach((x) => x.classList.remove("rd-reading")); setListen(false); }
+  function stopSpeech() { if (SP && (SP.speaking || SP.pending)) SP.cancel(); reading = null; if (panel) panel.querySelectorAll(".rd-reading").forEach((x) => x.classList.remove("rd-reading")); setListen(false); }
   function say(text, rate, onWord, onEnd) {
     if (!SP) return false;
     const v = voiceFor(lc);
@@ -102,6 +108,21 @@
   const today = () => { const d = new Date(); return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate(); };
   function lrn(w) { const x = st.learn[w]; if (x == null) return null; if (typeof x === "number") st.learn[w] = { n: x, s: 0, due: 0 }; return st.learn[w]; }
   const isDue = (x) => x && x.due <= Date.now();
+  // A word you lose again after it had started to stick is a hard one for you: it starts
+  // over, and every later gap for it is shorter (its ease falls). Words that keep holding
+  // get longer gaps. Ease lives on the word, so each word keeps its own pace.
+  function lapse(x) { if (x.s > 0 || x.n > 0) x.e = Math.max(0.55, (x.e || 1) - (x.s > 0 ? 0.2 : 0.1)); x.n++; x.s = 0; }
+  // The level follows your translations: when you carry nearly everything across, rarer
+  // words start counting as known (sentences get harder); when a run goes badly, they stop.
+  function adapt(r, n) {
+    if (r == null || n < 3) return;
+    const h = (st.hist = (st.hist || []).concat([r]).slice(-8));
+    if (h.length < 4) return;
+    const avg = h.slice(-5).reduce((a, b) => a + b, 0) / Math.min(5, h.length);
+    st.z0 = st.z0 || st.z;
+    if (avg >= 0.85 && st.z > 26) { st.z = st.z > 70 ? 62 : st.z - 2; st.hist = []; }
+    else if (avg < 0.5 && st.z < st.z0 + 8) { st.z += 2; st.hist = []; }
+  }
   function known(i) {
     const L = D[lc].lex[i]; if (!L) return false;
     const w = L[0];
@@ -153,7 +174,7 @@
       '<div class="rd-body"></div><div class="rd-card" hidden></div><footer class="rd-foot"></footer>';
     document.body.appendChild(panel);
     panel.querySelector(".rd-close").addEventListener("click", close);
-    mini = el("button", "rd-mini", "↩ Back to reading"); mini.type = "button"; mini.hidden = true;
+    mini = btn("rd-mini", "Back to reading"); mini.hidden = true;
     mini.addEventListener("click", () => { mini.hidden = true; panel.hidden = false; });
     document.body.appendChild(mini);
   }
@@ -163,9 +184,9 @@
     const d = D[lc];
     panel.querySelector(".rd-title").textContent = LANG[lc].own;
     const tools = panel.querySelector(".rd-tools"); tools.innerHTML = "";
-    const sw = el("button", "rd-chip", LANG[lc === "fr" ? "de" : "fr"].own); sw.type = "button";
+    const sw = btn("rd-chip", LANG[lc === "fr" ? "de" : "fr"].own);
     sw.addEventListener("click", () => open(lc === "fr" ? "de" : "fr"));
-    const au = el("select", "rd-author"); au.setAttribute("aria-label", "Author");
+    const au = el("select", "menu-act rd-author"); au.setAttribute("aria-label", "Author");
     const cur0 = st.author || (st.src ? "src:" + st.src : "");
     [["", "All books"], ["src:classics", "Classics only"], ["src:newer", "Newer books"]].forEach(([v, t]) => au.appendChild(new Option(t, v, false, cur0 === v)));
     const og = document.createElement("optgroup"); og.label = "Authors";
@@ -176,12 +197,14 @@
       if (v.startsWith("src:")) st.src = v.slice(4); else if (v) st.author = v;
       save(); stopSpeech(); next(false);
     });
-    const own = el("button", "rd-chip", "Paste a text"); own.type = "button"; own.addEventListener("click", pasteMode);
-    tools.append(au, own, sw);
+    const own = btn("rd-chip", "Paste a text"); own.addEventListener("click", pasteMode);
+    const nw = Object.keys(st.learn).length;
+    const wl = btn("rd-chip rd-words-btn", nw ? "Your words · " + nw : "Your words"); wl.addEventListener("click", wordList);
+    tools.append(au, wl, own, sw);
     if (SP && voiceFor(lc)) {
-      const sp = el("button", "rd-chip rd-speak", speakOn ? "🔊 Read aloud" : "🔇 Silent"); sp.type = "button";
+      const sp = btn("rd-chip rd-speak" + (speakOn ? " rd-on" : ""), speakOn ? "Aloud: on" : "Aloud: off");
       sp.setAttribute("aria-pressed", speakOn ? "true" : "false");
-      sp.addEventListener("click", () => { unlock(); speakOn = !speakOn; setPref("speak", speakOn ? "1" : "0"); sp.textContent = speakOn ? "🔊 Read aloud" : "🔇 Silent"; sp.setAttribute("aria-pressed", String(speakOn)); if (!speakOn) stopSpeech(); });
+      sp.addEventListener("click", () => { speakOn = !speakOn; setPref("speak", speakOn ? "1" : "0"); sp.textContent = speakOn ? "Aloud: on" : "Aloud: off"; sp.classList.toggle("rd-on", speakOn); sp.setAttribute("aria-pressed", String(speakOn)); if (!speakOn) stopSpeech(); });
       tools.appendChild(sp);
     }
   }
@@ -192,17 +215,17 @@
     box.appendChild(el("h2", null, "How much " + LANG[lc].name + " do you have?"));
     box.appendChild(el("p", "rd-note", "Quotations are picked so only one to three words are new. Tap a word you don't know; hold it to see it on the map. Whatever you didn't tap counts as known when you go on."));
     for (const [, label, z, sub] of LEVELS[lc]) {
-      const b = el("button", "rd-level"); b.type = "button";
+      const b = btn("rd-level");
       b.append(el("span", "rd-l1", label), el("span", "rd-l2", sub));
-      b.addEventListener("click", () => { unlock(); st = { v: 1, z, known: {}, learn: {}, seen: {}, author: null, n: 0 }; save(); header(); next(false); });
+      b.addEventListener("click", () => { st = { v: 1, z, known: {}, learn: {}, seen: {}, author: null, n: 0 }; save(); header(); next(false); });
       box.appendChild(b);
     }
     body().appendChild(box);
   }
 
-  let tappedHere = new Set(), selMode = false;
+  let tappedHere = new Set(), selMode = false, checked = false;
   function renderText(q, toks) {
-    const b = body(); b.innerHTML = ""; card().hidden = true; sel = null; tappedHere = new Set(); selMode = false;
+    const b = body(); b.innerHTML = ""; card().hidden = true; sel = null; tappedHere = new Set(); selMode = false; checked = false;
     const p = el("p", "rd-quote"); p.lang = lc;
     let at = 0;
     toks.forEach(([s, e, i], n) => {
@@ -219,17 +242,18 @@
     b.appendChild(p);
     if (SP && voiceFor(lc)) {
       const row = el("div", "rd-audio");
-      const ls = el("button", "rd-chip rd-listen", "▶ Listen"); ls.type = "button";
+      const ls = btn("rd-chip rd-listen", "▶ Listen");
       ls.addEventListener("click", () => { unlock(); if (reading) stopSpeech(); else readAloud(); });
-      const rt = el("button", "rd-chip rd-rate", RATES[rateIx] + "×"); rt.type = "button"; rt.setAttribute("aria-label", "Reading speed");
+      const rt = btn("rd-chip rd-rate", RATES[rateIx] + "×"); rt.setAttribute("aria-label", "Reading speed");
       rt.addEventListener("click", () => { rateIx = (rateIx + 1) % RATES.length; setPref("rate", String(rateIx)); rt.textContent = RATES[rateIx] + "×"; if (reading) readAloud(); });
       row.append(ls, rt);
       b.appendChild(row);
     }
-    const tr = el("button", "rd-chip rd-whole", "Whole sentence"); tr.type = "button";
+    const tr = btn("rd-chip rd-whole", "Whole sentence");
     tr.addEventListener("click", () => wholeSentence(q, p, tr));
     (b.querySelector(".rd-audio") || b.appendChild(el("div", "rd-audio"))).appendChild(tr);
     if (q.r || q.a) b.appendChild(el("p", "rd-ref", q.r ? q.r.replace(/:$/, "") : q.a));
+    yours(q, p);
     if (speakOn) setTimeout(readAloud, 250);
     if (q.en) {
       const t = el("details", "rd-en"); t.appendChild(el("summary", null, "Translation")); t.appendChild(el("p", null, q.en)); b.appendChild(t);
@@ -284,7 +308,7 @@
     const top = el("div", "rd-c-top");
     top.appendChild(el("b", "rd-c-w", L ? L[0] : w.textContent));
     if (SP && voiceFor(lc)) {
-      const again = el("button", "rd-say", "🔊"); again.type = "button"; again.setAttribute("aria-label", "Say it again");
+      const again = el("button", "rd-say", "♪"); again.type = "button"; again.setAttribute("aria-label", "Say it again");
       again.addEventListener("click", () => say(L && L[0].toLowerCase() !== w.textContent.toLowerCase() ? w.textContent + ". " + L[0] : w.textContent, RATES[rateIx] * 0.8));
       top.appendChild(again);
     }
@@ -299,18 +323,144 @@
     if (!tappedHere.has(L[0])) {
       tappedHere.add(L[0]);
       const x = had || { n: 0, s: 0, due: 0, src: cur && !cur.own ? cur.a : "your text" };
-      x.n++; x.s = 0; x.due = Date.now() + INT[0];
-      st.learn[L[0]] = x; delete st.known[L[0]]; save();
+      lapse(x); x.due = Date.now() + INT[0];
+      st.learn[L[0]] = x; delete st.known[L[0]]; save(); wordsChip();
     }
     w.classList.remove("rd-cog", "rd-learn"); w.classList.add("rd-new");
     footer(!!(cur && cur.own));
     const row = el("div", "rd-c-acts");
-    const k = el("button", "rd-btn", "I know this"); k.type = "button";
-    k.addEventListener("click", () => { delete st.learn[L[0]]; tappedHere.delete(L[0]); st.known[L[0]] = 1; save(); w.classList.remove("rd-new", "rd-tapped"); c.hidden = true; footer(!!(cur && cur.own)); });
-    const m = el("button", "rd-btn rd-btn-map", "On the map"); m.type = "button";
+    const k = btn("rd-btn", "I know this");
+    k.addEventListener("click", () => { delete st.learn[L[0]]; tappedHere.delete(L[0]); st.known[L[0]] = 1; save(); wordsChip(); w.classList.remove("rd-new", "rd-tapped"); c.hidden = true; footer(!!(cur && cur.own)); });
+    const m = btn("rd-btn rd-btn-map", "On the map");
     m.addEventListener("click", () => toMap(i));
     row.append(k, m);
     c.appendChild(row);
+  }
+
+  // ---- your translation ----------------------------------------------------------------
+  // You write the English; Carta checks it against what it knows, word by word: every
+  // content word's dictionary sense should turn up somewhere in what you wrote. The
+  // ones that don't are marked and join your words. Nothing here is generated: the
+  // senses are Wiktionary's, and the whole-sentence version (where shown) is the
+  // browser's own translator.
+  const STOP = new Set("the a an of to in on at by for from with and or as be is are was were it its this that these those one someone something someplace sth sb used form not no very more most also".split(" "));
+  const SKIP_POS = /^(article|det|pron|prep|postp|conj|particle|contraction|intj|interfix|punct|num)/i;
+  const CHECK_MAX_Z = 62; // the very commonest words (sein, werden, être, avoir…) bend too much to check one-to-one
+  const stem = (w) => w.toLowerCase().replace(/(ing|ed|es|s|ly)$/, "").slice(0, 5);
+  function senseStems(g) {
+    const out = new Set();
+    for (const part of g.split(/[;,/]|\bor\b/)) for (const m of part.toLowerCase().replace(/\([^)]*\)/g, " ").match(/[a-z]+/g) || []) {
+      if (m.length < 3 || STOP.has(m)) continue;
+      out.add(stem(m));
+    }
+    return out;
+  }
+  function yours(q, p) {
+    const box = el("div", "rd-yours");
+    box.appendChild(el("label", "rd-you-cap", "Your English"));
+    const ta = el("textarea", "rd-you"); ta.rows = 3; ta.lang = "en"; ta.placeholder = "Write what it says…";
+    ta.setAttribute("autocapitalize", "sentences"); ta.spellcheck = true;
+    ta.addEventListener("input", () => { if (checked) { checked = false; box.querySelector(".rd-verdict") && box.querySelector(".rd-verdict").remove(); footer(!!(cur && cur.own)); } });
+    ta.addEventListener("keydown", (e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); check(q, ta); } });
+    box.appendChild(ta);
+    body().appendChild(box);
+  }
+  async function check(q, ta) {
+    const text = ta.value.trim(); if (!text) return;
+    checked = true;
+    const mine = new Set((text.toLowerCase().match(/[a-z]+/g) || []).map(stem));
+    const spans = [...body().querySelectorAll(".rd-quote .rd-w")];
+    const got = [], missed = [];
+    const seenL = new Set();
+    for (const w of spans) {
+      const i = +w.dataset.i; if (!(i >= 0)) continue;
+      const L = D[lc].lex[i]; if (!L || !L[1] || SKIP_POS.test(L[2] || "") || L[3] >= CHECK_MAX_Z) continue;
+      if (seenL.has(L[0])) continue; seenL.add(L[0]);
+      const st0 = senseStems(L[1]); if (!st0.size) continue;
+      let hit = false;
+      for (const g of st0) for (const m of mine) if (m === g || (g.length >= 4 && m.length >= 4 && (m.startsWith(g.slice(0, 4)) || g.startsWith(m.slice(0, 4))))) { hit = true; break; }
+      // a cognate you carried straight across counts too
+      if (!hit && L[4]) { const c = stem(L[4]); for (const m of mine) if (m.length >= 4 && (m.startsWith(c.slice(0, 4)))) hit = true; }
+      spans.filter((x) => +x.dataset.i === i).forEach((x) => x.classList.add(hit ? "rd-got" : "rd-miss"));
+      (hit ? got : missed).push(L);
+    }
+    const box = body().querySelector(".rd-yours");
+    const old = box.querySelector(".rd-verdict"); if (old) old.remove();
+    const v = el("div", "rd-verdict");
+    const n = got.length + missed.length;
+    v.appendChild(el("p", "rd-v-sum", !n ? "Nothing to check here." : missed.length ? got.length + " of " + n + " meanings found in your English." : "Every meaning is there."));
+    if (missed.length) {
+      const ul = el("ul", "rd-v-miss");
+      for (const L of missed) {
+        const li = el("li"); li.append(el("b", null, L[0]), document.createTextNode(" — " + L[1]));
+        ul.appendChild(li);
+        // a word you didn't carry over joins your words, as if you'd tapped it
+        if (!tappedHere.has(L[0])) {
+          tappedHere.add(L[0]);
+          const x = lrn(L[0]) || { n: 0, s: 0, due: 0, src: cur && !cur.own ? cur.a : "your text" };
+          lapse(x); x.due = Date.now() + INT[0]; st.learn[L[0]] = x; delete st.known[L[0]];
+        }
+      }
+      v.appendChild(ul);
+    }
+    box.appendChild(v);
+    // carried over correctly while still learning: that word is getting easier
+    for (const L of got) { const x = lrn(L[0]); if (x) x.e = Math.min(1.6, (x.e || 1) + 0.08); }
+    adapt(n ? got.length / n : null, n);
+    (st.tx = st.tx || []).push({ a: q.a || "", t: q.t, you: text, got: got.length, n, d: Date.now() });
+    if (st.tx.length > 300) st.tx.splice(0, st.tx.length - 300);
+    save(); wordsChip(); footer(!!(cur && cur.own));
+    if (window.Translator && Translator.create) {
+      try {
+        const t = await Promise.race([Translator.create({ sourceLanguage: lc, targetLanguage: "en" }), new Promise((_, no) => setTimeout(() => no(new Error("slow")), 5000))]);
+        const out = await t.translate(q.t);
+        if (box.isConnected) { const r = el("p", "rd-tr"); r.append(el("span", "rd-tr-cap", "Your browser's translation: "), document.createTextNode(out)); v.appendChild(r); }
+      } catch (e) {}
+    }
+  }
+
+  // ---- your words: everything you've tapped (or missed in a translation) -----------------
+  function wordsChip() { const c = panel && panel.querySelector(".rd-words-btn"); if (c) { const n = Object.keys(st.learn).length; c.textContent = n ? "Your words · " + n : "Your words"; } }
+  function lexIndex() { const d = D[lc]; if (!d.byLemma) { d.byLemma = new Map(); d.lex.forEach((L, i) => { if (L && !d.byLemma.has(L[0])) d.byLemma.set(L[0], i); }); } return d.byLemma; }
+  function when(due) {
+    const d = due - Date.now();
+    if (d <= 0) return "due now";
+    const h = d / 36e5; if (h < 1) return "back in " + Math.max(1, Math.round(h * 60)) + " min"; if (h < 20) { const r = Math.round(h); return "back in " + r + (r === 1 ? " hour" : " hours"); }
+    const days = Math.round(h / 24); return "back in " + days + (days === 1 ? " day" : " days");
+  }
+  function wordList() {
+    stopSpeech(); card().hidden = true;
+    const b = body(); b.innerHTML = "";
+    const top = el("div", "rd-wl-top");
+    top.appendChild(el("h2", "rd-wl-h", "Your words"));
+    const back = btn("rd-chip", "Back to reading"); back.addEventListener("click", () => { header(); if (cur && cur.w) { renderText(cur, cur.w); footer(!!cur.own); } else next(false); });
+    top.appendChild(back); b.appendChild(top);
+    const words = Object.keys(st.learn).map((w) => [w, lrn(w)]).sort((a, z) => (a[1].due || 0) - (z[1].due || 0));
+    if (!words.length) { b.appendChild(el("p", "rd-note", "Words you tap, and words your translation misses, collect here. They come back in new sentences until they stick.")); foot().innerHTML = ""; return; }
+    b.appendChild(el("p", "rd-note", words.length + " words. Each comes back in a new sentence; read past it five times without tapping and it's learned."));
+    const idx = lexIndex();
+    const ul = el("ul", "rd-wl");
+    for (const [w, x] of words) {
+      const i = idx.has(w) ? idx.get(w) : -1, L = i >= 0 ? D[lc].lex[i] : null;
+      const li = el("li", "rd-wl-i");
+      const head = el("div", "rd-wl-head");
+      head.appendChild(el("b", "rd-wl-w", w));
+      if (L && L[2]) head.appendChild(el("i", "rd-c-pos", L[2]));
+      head.appendChild(el("span", "rd-wl-when", (x.s ? "step " + (x.s + 1) + " of 5 · " : "") + when(x.due)));
+      li.appendChild(head);
+      if (L && L[1]) li.appendChild(el("p", "rd-c-g", L[1]));
+      if (L && L[4]) li.appendChild(el("p", "rd-c-cog", (L[5] ? "≈ English " : "Cousin of English ") + L[4]));
+      if (x.src) li.appendChild(el("p", "rd-c-met", "Met in " + x.src));
+      const acts = el("div", "rd-c-acts");
+      if (SP && voiceFor(lc)) { const sy = btn("rd-btn", "♪ Say"); sy.addEventListener("click", () => { unlock(); say(w, RATES[rateIx] * 0.85); }); acts.appendChild(sy); }
+      const kn = btn("rd-btn", "I know it"); kn.addEventListener("click", () => { delete st.learn[w]; st.known[w] = 1; save(); li.remove(); });
+      acts.appendChild(kn);
+      if (i >= 0) { const mp = btn("rd-btn", "On the map"); mp.addEventListener("click", () => toMap(i)); acts.appendChild(mp); }
+      li.appendChild(acts);
+      ul.appendChild(li);
+    }
+    b.appendChild(ul);
+    foot().innerHTML = "";
   }
 
   function toMap(i) {
@@ -340,8 +490,18 @@
     const info = el("span", "rd-count", bits.join(" · "));
     if (t >= 8 && !isOwn) info.appendChild(el("span", "rd-stop", "A good place to stop — the next one will keep."));
     f.appendChild(info);
-    const nx = el("button", "rd-btn rd-next", isOwn ? "Done" : "Next"); nx.type = "button";
-    nx.addEventListener("click", () => { unlock(); stopSpeech(); next(true); });
+    const ta = body().querySelector(".rd-you");
+    const needCheck = ta && !checked;
+    if (needCheck) {
+      const sk = el("button", "rd-skip", "Skip"); sk.type = "button";
+      sk.addEventListener("click", () => { if (speakOn) unlock(); stopSpeech(); next(true); });
+      f.appendChild(sk);
+    }
+    const nx = btn("rd-btn rd-next", needCheck ? "Check" : isOwn ? "Done" : "Next");
+    nx.addEventListener("click", () => {
+      if (needCheck) { if (!ta.value.trim()) { ta.focus(); return; } return check(cur, ta); }
+      if (speakOn) unlock(); stopSpeech(); next(true);
+    });
     f.appendChild(nx);
   }
 
@@ -359,7 +519,7 @@
           if (!tappedHere.has(w) && x.due <= now) {
             x.s++;
             if (x.s >= INT.length) { delete st.learn[w]; st.known[w] = 1; st.grad = (st.grad || 0) + 1; }
-            else x.due = now + INT[x.s] * (0.85 + Math.random() * 0.3);
+            else { x.e = Math.min(1.6, (x.e || 1) + 0.04); x.due = now + INT[x.s] * (x.e || 1) * (0.85 + Math.random() * 0.3); }
           }
         } else if (!known(i)) st.known[w] = 1;
       }
@@ -387,7 +547,7 @@
     const ta = el("textarea", "rd-paste"); ta.rows = 8; ta.lang = lc;
     try { ta.value = localStorage.getItem("carta.read.paste." + lc) || ""; } catch (e) {}
     b.appendChild(ta);
-    const go = el("button", "rd-btn", "Read it"); go.type = "button";
+    const go = btn("rd-btn", "Read it");
     go.addEventListener("click", async () => {
       const t = ta.value.trim(); if (!t) return;
       try { localStorage.setItem("carta.read.paste." + lc, t); } catch (e) {}
@@ -407,7 +567,7 @@
   }
 
   async function open(which) {
-    unlock(); stopSpeech();
+    stopSpeech();
     if (!panel) build();
     lc = which; panel.hidden = false; mini.hidden = true;
     body().innerHTML = '<p class="rd-note">Loading…</p>';

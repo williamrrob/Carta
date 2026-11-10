@@ -607,7 +607,7 @@
     } else {
       card.appendChild(el("div", "src-note", "A source word English vocabulary is built on."));
     }
-    if (r.online) card.appendChild(el("div", "src-note", "Looked up live from Wiktionary."));
+    if (r.online) card.appendChild(el("div", "src-note", "Looked up live."));
     cardsEl.appendChild(card);
     requestAnimationFrame(function () { card.classList.add("in"); });
 
@@ -628,7 +628,7 @@
     if (r.online) {
       const link = el("div", "card");
       const a = document.createElement("a"); a.className = "src-wiki";
-      a.textContent = "View full entry on Wiktionary →";
+      a.textContent = "Full dictionary entry →";
       a.setAttribute("href", "https://en.wiktionary.org/wiki/" + encodeURIComponent(r.l));
       a.setAttribute("target", "_blank"); a.setAttribute("rel", "noopener");
       link.appendChild(a);
@@ -2068,14 +2068,26 @@
   var appShell = document.querySelector(".app");
   const mapEl = $("map");
   const sheetGrip = $("sheetGrip");
+  // the app's real height (installed on iOS the reported viewport runs short; see index.html --vgap)
+  function viewH() { const a = document.querySelector && document.querySelector(".app"); return (a && a.getBoundingClientRect && a.getBoundingClientRect().height) || window.innerHeight || 800; }
+  let sabProbe = null;
+  function safeBottom() {
+    if (!document.createElement || !document.body || !document.body.appendChild) return 0;
+    if (!sabProbe) { sabProbe = document.createElement("div"); sabProbe.style.cssText = "position:absolute;visibility:hidden;pointer-events:none;height:env(safe-area-inset-bottom)"; document.body.appendChild(sabProbe); }
+    return sabProbe.offsetHeight || 0;
+  }
   const MAP_TOP = 72; // the top bar, kept clear when framing a node
   let lensName = "descent";
   let mapWord = null;
 
   function sheetHeight(st) {
-    const H = window.innerHeight || 800;
+    const H = viewH();
     if (st === "hidden") return 0;
-    if (st === "home") return 132;
+    if (st === "home") { // as tall as its buttons need on this screen, plus the home-indicator strip
+      const hint = document.getElementById && document.getElementById("hint");
+      if (hint && hint.offsetHeight) return Math.max(110, Math.ceil(hint.offsetHeight + 14 + 22 + safeBottom()));
+      return 132;
+    }
     if (st === "mini") return 236;
     if (st === "callout") return 0;
     if (st === "peek") return Math.round(H * 0.5);
@@ -2109,6 +2121,7 @@
   }
   setSheet(currentWord ? "peek" : "home");
   if (typeof window.addEventListener === "function") window.addEventListener("resize", function () { setSheet(sheetState); });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { if (sheetState === "home") setSheet("home"); }); // the look's face changes how the buttons wrap
 
   // grip: tap toggles half ↔ full; drag snaps to the nearest of small / half / full
   if (sheetGrip && typeof sheetGrip.addEventListener === "function") {
@@ -2122,7 +2135,7 @@
       if (y0 == null) return;
       const dy = e.clientY - y0;
       if (Math.abs(dy) > 4) moved = true;
-      contentEl.style.setProperty("--sheet-h", Math.max(90, Math.min(window.innerHeight * 0.95, h0 - dy)) + "px");
+      contentEl.style.setProperty("--sheet-h", Math.max(90, Math.min(viewH() * 0.95, h0 - dy)) + "px");
     });
     const end = function () {
       if (y0 == null) return;
@@ -2137,6 +2150,37 @@
     };
     sheetGrip.addEventListener("pointerup", end);
     sheetGrip.addEventListener("pointercancel", end);
+  }
+  // pulling down on an open sheet that's scrolled to its top puts it away again (the grip is
+  // a small target, and on the full sheet it sits up by the status bar)
+  if (contentEl && typeof contentEl.addEventListener === "function") {
+    let ty0 = null, tx0 = 0, pulling = false, hStart = 0;
+    contentEl.addEventListener("touchstart", function (e) {
+      if (!(sheetState === "full" || sheetState === "peek") || e.touches.length !== 1 || contentEl.scrollTop > 0) { ty0 = null; return; }
+      ty0 = e.touches[0].clientY; tx0 = e.touches[0].clientX; pulling = false; hStart = contentEl.getBoundingClientRect().height;
+    }, { passive: true });
+    contentEl.addEventListener("touchmove", function (e) {
+      if (ty0 == null) return;
+      const dy = e.touches[0].clientY - ty0, dx = e.touches[0].clientX - tx0;
+      if (!pulling) {
+        if (dy > 8 && dy > Math.abs(dx) * 1.5 && contentEl.scrollTop <= 0) { pulling = true; contentEl.style.transition = "none"; }
+        else if (Math.abs(dy) > 8 || Math.abs(dx) > 8) { ty0 = null; return; }
+      }
+      if (pulling) { e.preventDefault(); contentEl.style.setProperty("--sheet-h", Math.max(90, hStart - dy * 0.9) + "px"); }
+    }, { passive: false });
+    const pullEnd = function (e) {
+      if (ty0 == null) return;
+      const was = pulling; ty0 = null; pulling = false;
+      if (!was) return;
+      contentEl.style.transition = "";
+      const h = contentEl.getBoundingClientRect().height;
+      if (hStart - h < 70) { setSheet(sheetState); return; } // not far enough: spring back
+      if (sheetState === "full") setSheet("peek");
+      else if (calloutFor >= 0) setSheet("callout");
+      else setSheet("mini");
+    };
+    contentEl.addEventListener("touchend", pullEnd);
+    contentEl.addEventListener("touchcancel", pullEnd);
   }
   // reading on: scrolling the half sheet opens it fully; a small sheet opens on tap
   if (contentEl && typeof contentEl.addEventListener === "function") {
@@ -2247,7 +2291,7 @@
     if (!calloutEl || calloutEl.hidden || calloutFor < 0 || !window.RootMap || !leaderLine) return;
     const p = RootMap.screenOf(calloutFor);
     if (!p) return;
-    const top = (window.innerHeight || 800) - calloutEl.offsetHeight;
+    const top = (viewH()) - calloutEl.offsetHeight;
     const r = calloutEl.getBoundingClientRect();
     const x2 = Math.max(r.left + 24, Math.min(r.right - 24, p[0]));
     const vis = p[1] < top - 14 && p[1] > MAP_TOP - 10 && p[0] > -10 && p[0] < (window.innerWidth || 400) + 10;
@@ -2513,7 +2557,7 @@
     if (!window.RootMap || !RootMap.loaded()) return;
     const idx = list.map(function (w) { return RootMap.find(w); }).filter(function (i) { return i >= 0; });
     RootMap.setMarks(idx);
-    const Wd = window.innerWidth || 400, Hd = (window.innerHeight || 800) * 0.62;
+    const Wd = window.innerWidth || 400, Hd = (viewH()) * 0.62;
     const inView = idx.filter(function (i) { const p = RootMap.screenOf(i); return p && p[0] > 0 && p[0] < Wd && p[1] > MAP_TOP && p[1] < Hd; }).length;
     if (qCap) qCap.textContent = list.length ? lookUI().found(list.length, inView) : "";
     if (lookName === "netscape" && nsMsg) nsMsg.textContent = list.length ? "carta://" + list[0] : "Document: Done";
@@ -2568,7 +2612,7 @@
   function placePlate(cardH) {
     if (!window.RootMap || !RootMap.setPlate) return;
     if (lookName !== "planisphere") { RootMap.setPlate(null); return; }
-    const Wd = window.innerWidth || 390, Hd = window.innerHeight || 800;
+    const Wd = window.innerWidth || 390, Hd = viewH();
     const top = MAP_TOP + 24, bottom = Hd - cardH - 30;
     const ry = Math.max(80, (bottom - top) / 2), rx = Math.max(80, Math.min(Wd / 2 - 34, ry * 1.08));
     let sat = 0, sab = 0;
@@ -2895,10 +2939,17 @@
       qc.addEventListener("change", function () { try { localStorage.setItem("rootwork.showQuiet", qc.checked ? "1" : ""); } catch (e) {} if (window.RootMap) RootMap.setOptions({ showQuiet: qc.checked }); });
       ql.appendChild(qc); ql.appendChild(txtNode(" Show slang, Internet words and neologisms"));
       keyEl.appendChild(ql);
-      keyEl.appendChild(el("p", "lin-note", "Built only from Wiktionary, so the map and the text never disagree."));
+      keyEl.appendChild(el("p", "lin-note", "Built from one dictionary, so the map and the text never disagree."));
       const acts = el("div", "key-actions");
       const upd = el("button", "lin-part", "Check for updates"); upd.type = "button";
-      upd.addEventListener("click", function () { const rb = $("refreshBtn"); if (rb) rb.click(); });
+      upd.addEventListener("click", function () {
+        if (upd.disabled || !window.cartaCheckUpdate) return;
+        upd.disabled = true; upd.textContent = "Checking…";
+        window.cartaCheckUpdate().then(function (res) {
+          upd.textContent = res === "current" ? "No update found — you're on the latest" : res === "updating" ? "Updating…" : "Couldn't check — you're offline";
+          if (res !== "updating") setTimeout(function () { upd.disabled = false; upd.textContent = "Check for updates"; }, 3200);
+        });
+      });
       acts.appendChild(upd);
       keyEl.appendChild(acts);
       keyEl.hidden = false;

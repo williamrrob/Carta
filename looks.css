@@ -352,6 +352,8 @@
   color: #f1d68e; border-color: #e7c46e; font-weight: 400; background: rgba(0,0,0,.18);
   box-shadow: inset 0 0 0 3px #1c2541, inset 0 0 0 4px rgba(184,50,42,.9), inset 0 3px 6px rgba(0,0,0,.55);
 }
+/* panels that sit on the printed disc are cut from the same leather as the plate, so the gilt reads */
+:root[data-look="planisphere"] .lens-btn, :root[data-look="planisphere"] .lens-btn.on, :root[data-look="planisphere"] .topbar .icon-toggle { background: var(--grain), #1c2541; }
 :root[data-look="planisphere"] .lens { border: 0; background: none; box-shadow: none; padding: 0; gap: 6px; }
 :root[data-look="planisphere"] .lens-btn { padding: 0 12px; height: 38px; font-size: 13px; }
 :root[data-look="planisphere"] .icon-toggle { border-radius: 0; }
@@ -377,7 +379,7 @@
 :root[data-look="planisphere"] .content .cap { color: #1e1a16; text-align: center; letter-spacing: .2em; }
 :root[data-look="planisphere"] .content .entry-word { font-family: var(--font); font-weight: 700; }
 :root[data-look="planisphere"] .content .entry-coords { color: #6b6253; font-family: "Playfair Display SC", var(--font); text-transform: none; letter-spacing: .12em; }
-:root[data-look="planisphere"] .content .co-act, :root[data-look="planisphere"] .content .lin-part, :root[data-look="planisphere"] .content .desc-chip, :root[data-look="planisphere"] .content .hunt-opt, :root[data-look="planisphere"] .content .related-chip {
+:root[data-look="planisphere"] .content .home-act, :root[data-look="planisphere"] .content .co-act, :root[data-look="planisphere"] .content .lin-part, :root[data-look="planisphere"] .content .desc-chip, :root[data-look="planisphere"] .content .hunt-opt, :root[data-look="planisphere"] .content .related-chip {
   border: .8px solid #1e1a16; outline: 0; box-shadow: none; color: #1e1a16; background: transparent;
 }
 /* search: lettered in gilt on the leather */
@@ -648,3 +650,36 @@ button, input, select, textarea, .alpha-tab, .save-btn { font-family: inherit; }
 :root[data-look="netscape"] .lin-kind { color: #000; font-family: "Tinos", "Times New Roman", serif; font-size: 14px !important; }
 :root[data-look="blueprint"] .lin-kind { font: 600 11px/1.35 var(--font) !important; text-transform: uppercase !important; letter-spacing: .04em !important; }
 :root[data-look="priestley"] .lin-kind, :root[data-look="ortelius"] .lin-kind { font-style: italic; }
+
+/* =====================================================================
+   STANDALONE GAP · installed to the home screen, iOS reports a viewport
+   shorter than the screen, so anything pinned to the bottom stopped short
+   and left a dead band. --vgap (index.html) is that shortfall; every
+   bottom-anchored fixed layer reaches down by it. 0 in the browser.
+   ===================================================================== */
+.map, .settings-overlay, :root[data-look] .edge-bot { bottom: calc(0px - var(--vgap, 0px)); }
+:root[data-look] .orb { bottom: calc(18px + env(safe-area-inset-bottom) - var(--vgap, 0px)); }
+:root[data-look] .acts { bottom: calc(92px + env(safe-area-inset-bottom) - var(--vgap, 0px)); }
+:root[data-look] .app.acts-open::after { bottom: calc(0px - var(--vgap, 0px)); }
+:root[data-look="netscape"] .ns-status { bottom: calc(env(safe-area-inset-bottom) - var(--vgap, 0px)); }
+.app.quiz-peek .content { bottom: calc(env(safe-area-inset-bottom) + 20px - var(--vgap, 0px)); }
+
+/* =====================================================================
+   FIT · the menu and the home strip size themselves to the screen
+   rather than to the longest label: labels wrap inside their panel,
+   panels never push past the menu's edge, and the home actions keep
+   clear of the orb.
+   ===================================================================== */
+.map-key { box-sizing: border-box; overflow-x: hidden; max-height: calc(100dvh + var(--vgap, 0px) - env(safe-area-inset-top) - 150px); }
+.menu-acts { grid-template-columns: repeat(auto-fit, minmax(min(132px, 100%), 1fr)); }
+:root[data-look] .menu-act, :root[data-look] .menu-look { min-width: 0; white-space: normal; line-height: 1.2; overflow-wrap: anywhere; height: auto; }
+:root[data-look] .menu-act { min-height: 44px; padding: 10px 12px; display: flex; align-items: center; gap: 8px; text-align: left; }
+.menu-look { flex-wrap: wrap; row-gap: 2px; }
+.menu-look .ml-sub { flex: 1 1 9em; text-align: right; }
+/* the orb sits over the strip's right end only on narrow screens; wider, the strip is centred clear of it */
+@media (max-width: 759px) { :root[data-look] .hint { padding-left: 4px; padding-right: 72px; box-sizing: border-box; } }
+@media (min-width: 560px) and (max-width: 759px) { :root[data-look] .hint { padding-left: 72px; } }
+:root[data-look] .home-act { white-space: nowrap; }
+.map-key .key-actions .lin-part { padding: 10px 14px; min-height: 40px; line-height: 1.2; }
+/* the full sheet's grip clears the status bar so it can be reached */
+.app[data-sheet="full"] .sheet-grip { height: calc(26px + env(safe-area-inset-top) * 0.5); align-items: end; padding-bottom: 6px; }

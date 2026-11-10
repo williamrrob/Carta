@@ -311,8 +311,26 @@
       gl.drawArrays(gl.POINTS, 0, focus.geo.np);
     }
     drawUnder(ctr);
-    drawLabels(ctr);
+    // Lettering is the expensive part of a frame (placing ~140 names without collisions).
+    // While the map is moving, the last lettering is carried along by a GPU transform
+    // instead of being re-placed every frame; it is re-placed when the motion settles,
+    // or sooner if the zoom has drifted far enough that the old names would look wrong.
+    const now = performance.now();
+    const moving = !!(anim || glide) || now - lastInput < 140;
+    const k = labCam ? cam.s / labCam.s : 1;
+    const plateOn = LOOK.plate && plateA > 0.02;
+    if (moving && labCam && !plateOn && k > 0.8 && k < 1.25 && labCam.n < 24) {
+      const tx = (labCam.ctr[0] - ctr[0]) * cam.s, ty = (labCam.ctr[1] - ctr[1]) * cam.s;
+      lab.style.transform = `translate(${tx}px,${ty}px) scale(${k})`;
+      labStale = true; labCam.n++;
+    } else {
+      if (lab.style.transform) lab.style.transform = "";
+      drawLabels(ctr);
+      labCam = { ctr: ctr.slice(), s: cam.s, n: 0 };
+      labStale = false;
+    }
   }
+  let labCam = null, labStale = false, lastInput = 0;
 
   // ---- labels (no overlaps: a screen-space occupancy grid) -----------------------
   const FONT = '"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif';
@@ -765,6 +783,7 @@
       dirty = true;
       if (Math.hypot(glide.vx, glide.vy) < 0.015) { glide = null; if (onInteract) onInteract(false); }
     }
+    if (labStale && !anim && !glide && performance.now() - lastInput >= 140) dirty = true; // motion settled: letter afresh
     if (dirty) { dirty = false; draw(); if (onDraw) onDraw(); }
     requestAnimationFrame(frame);
   }
@@ -813,8 +832,8 @@
   function bindInput() {
     const pts = new Map();
     let start = null, pinch = null, moved = false, pinched = false, samples = [];
-    lab.addEventListener("pointerdown", (e) => {
-      try { lab.setPointerCapture(e.pointerId); } catch (err) {}
+    lab.parentElement.addEventListener("pointerdown", (e) => {
+      try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) {}
       pts.set(e.pointerId, [e.clientX, e.clientY]);
       if (anim && anim.done) anim.done();
       anim = null;
@@ -829,8 +848,9 @@
         moved = true;
       }
     });
-    lab.addEventListener("pointermove", (e) => {
+    lab.parentElement.addEventListener("pointermove", (e) => {
       if (!pts.has(e.pointerId)) return;
+      lastInput = performance.now();
       pts.set(e.pointerId, [e.clientX, e.clientY]);
       if (pts.size >= 2 && pinch) {
         const [a, b] = [...pts.values()];
@@ -869,18 +889,20 @@
       }
       if (pts.size === 1) { const [p] = [...pts.values()]; start = { x: p[0], y: p[1], cx: cam.x, cy: cam.y, t: performance.now() }; return; }
       if (was && start && !moved && performance.now() - start.t < 450 && e.type === "pointerup") {
-        const r = lab.getBoundingClientRect();
+        if (labStale) { lastInput = 0; draw(); } // names still riding a transform: place them before hit-testing
+        const r = glc.getBoundingClientRect();
         const i = pick(e.clientX - r.left, e.clientY - r.top);
         if (i >= 0 && onTap) onTap(i);
       }
       start = null;
     };
-    lab.addEventListener("pointerup", up); lab.addEventListener("pointercancel", up);
+    lab.parentElement.addEventListener("pointerup", up); lab.parentElement.addEventListener("pointercancel", up);
     let wheelT = 0;
-    lab.addEventListener("wheel", (e) => {
+    lab.parentElement.addEventListener("wheel", (e) => {
       e.preventDefault();
+      lastInput = performance.now();
       if (onInteract) { if (!wheelT) onInteract(true); clearTimeout(wheelT); wheelT = setTimeout(() => { wheelT = 0; onInteract(false); }, 450); }
-      const r = lab.getBoundingClientRect();
+      const r = glc.getBoundingClientRect();
       const px = e.clientX - r.left, py = e.clientY - r.top;
       const before = toWorld(px, py);
       cam.s = Math.max(0.05, Math.min(80, cam.s * Math.exp(-e.deltaY * 0.0016)));
@@ -888,8 +910,8 @@
       cam.x += before[0] - after[0]; cam.y += before[1] - after[1];
       anim = null; dirty = true;
     }, { passive: false });
-    lab.addEventListener("dblclick", (e) => {
-      const r = lab.getBoundingClientRect();
+    lab.parentElement.addEventListener("dblclick", (e) => {
+      const r = glc.getBoundingClientRect();
       const [wx, wy] = toWorld(e.clientX - r.left, e.clientY - r.top);
       flyTo(wx, wy, Math.min(80, cam.s * 2.2), 450);
     });
@@ -897,7 +919,11 @@
 
   function resize() {
     const r = glc.parentElement.getBoundingClientRect();
+    if (r.width === W && r.height === H) return;
+    // on the whole-map view, keep the whole map framed when the screen changes shape
+    const wasFit = G && !focus && !anim && W > 0 && Math.abs(cam.s - fitScale()) < 1e-6 * cam.s + 1e-9;
     W = r.width; H = r.height;
+    if (wasFit) cam.s = fitScale();
     for (const c of [und, glc, lab].filter(Boolean)) { c.width = Math.round(W * DPR); c.height = Math.round(H * DPR); c.style.width = W + "px"; c.style.height = H + "px"; }
     dirty = true;
   }
@@ -1000,6 +1026,7 @@
     P_PT = prog(VS_PT, FS_PT); P_LN = prog(VS_LN, FS_LN);
     resize();
     window.addEventListener("resize", resize);
+    if (window.ResizeObserver) new ResizeObserver(resize).observe(el); // the map also changes size without a window resize (installed-app height fix)
     bindInput();
     load().then(() => {
       buildBuffers();
