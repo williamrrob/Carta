@@ -48,6 +48,8 @@ Status is tracked at the bottom of this file.
 
 - [x] dumps downloaded (en, fr, de, la)
 - [x] extractor written and slice-tested
-- [ ] extraction run
+- [x] extraction run → `carta-work/vendor-data/slim-<Lang>-<0..3>.jsonl` (repo clone at `carta-work/repo`)
+      lemmas / with relations / with IPA: English 962,474 / 475,442 / 128,473 · Français 103,564 / 51,040 / 78,661 ·
+      Deutsch 103,021 / 70,106 / 62,605 · Latina 54,642 / 32,712 / 39,123. Latin entries with a Descendants tree: 16,710.
 - [ ] graph builder
 - [ ] renderer: marks, switches, waypoints, folded derivatives
