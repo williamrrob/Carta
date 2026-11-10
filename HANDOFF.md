@@ -1,5 +1,37 @@
 # Handoff: build the four-language graph (next steps)
 
+## Status, Nov 10 2026: steps 1–3 done, report written, waiting on Will
+
+- Built in a cloud session, not on the Mac (kaikki is reachable there, 7 GB RAM, no 3-minute cap).
+  Commands are in PARITY.md "Pipeline"; the full run is ~35 min. Nothing from vendor data is in git.
+- Step 1: 67 ancestor-language dumps fetched (every language cited ≥300 times that has its own dump).
+  The 9 without one are Wiktionary etymology-only varieties; their citations are resolved against the
+  parent language (Anglo-Norman → Old French, Old Latin → Latin, …): 6,525 citations matched that way.
+- Step 2: `scripts/build-lexeme-graph.js` + `scripts/lexeme-lib.js`. Beyond the plan:
+  `{{ety}}` decides an entry's direct sources, classic templates only add deeper steps; the
+  extractor records how prose joins templates (`+` part, `&` "or/and", `.` new sentence), so
+  alternatives aren't read as a chain; junk citations (`+`, `ine-pro:`) are dropped (they had become
+  hubs tying unrelated families together); several descendants routing different chains through one
+  entry-less form keep the majority source; prose parser + etym-derive.js as fallback; English
+  inflected/alternative spellings (greatest, christian) fold under their lemma.
+- Step 3: layout fed unchanged except: reads `g/` from the new builder, writes `size4.bin`,
+  `fold.bin`, `edgekind.bin`, `g/keys.json`; and a bug fix in its cycle breaker (it orphaned every
+  node whose line ran *into* a loop, e.g. *dress*, *christian*; now only an edge on the loop is cut).
+  `V` bumped to 8. The current app renders it (screenshot checked, no console errors), `npm test` passes.
+- Full numbers: `review/parity-graph-report.txt` (regenerate with `scripts/report-lexeme-graph.js`).
+
+Open for Will (not decided in PARITY.md):
+1. English points = the ~240k words that have a page in `words/` (+10k other English entries kept
+   because something descends from them). 671k other English dictionary entries are left off the map.
+2. Depth target missed: 94.8% of the 8,511 starting words reach an ancestor at least as old as before
+   (target 97%). The ~440 that don't: names whose dictionary page has no etymology (charleston,
+   helen); app headwords that are a different word from the old guess (`words/` *june* is the slang
+   verb "to rush"); old links that were wrong (dollar ← Biblical Hebrew, zero ← PIE); chains that stop
+   where the ancestor's entry says nothing further (Latin *experientiālis* has no page).
+3. Reconstructed spelling variants still split families (PIE *h₁en / h₁én, *ǵʰreh₁- / gʰreh₁-).
+   Folding them would mean ignoring accents or palatal marks in reconstructions: a rule, not the
+   dictionary. Leave, or fold a bare citation onto an entry that differs only by an accent?
+
 Read `CLAUDE.md`, then `PARITY.md` (every decision already made with Will; do not re-ask them), then this.
 Branch: `claude/parity-graph`. Do not push to the main branch until Will has seen the numbers in "Report".
 
@@ -95,7 +127,7 @@ the current app renders it before any UI work. Keep the served files it already 
 `size4.bin`, `fold.bin`, `edgekind.bin`. English labels must still equal the `words/` shard keys so tapping a
 point opens its entry. Do not open or rewrite the shards (iron rule 1).
 
-## Report to Will, then stop
+## Report to Will, then stop (done Nov 10: see top of file and review/parity-graph-report.txt)
 
 Before touching the renderer, give him these, in plain words:
 

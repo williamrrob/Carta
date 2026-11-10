@@ -30,17 +30,26 @@ Decisions made with Will (don't re-ask):
 
 Mockups: https://claude.ai/artifact/9CbHAm3Yg7L96j6FR6X8Y8
 
-## Pipeline (heavy steps run on Will's Mac, folder `~/carta-work`, via the device shell)
+## Pipeline
 
-Limits there: 3-minute commands, nothing survives between commands, 4 cores, 3 GB. So every step is sliced.
+Ran in a cloud Claude session (Nov 10 2026): it reaches kaikki.org directly, has 7 GB RAM and no 3-minute
+command cap, so the whole build takes ~35 min there. The Mac folder `~/carta-work` still works for the
+same commands (slice them). Raw dumps and slim files are not kept in the repo; everything regenerates.
 
-1. `carta-work/dl.sh <Lang>…` — resumable download of per-language dumps into `carta-work/vendor-data/`
-   (`kaikki-English|French|German|Latin.jsonl` are downloaded, 6.4 GB).
-2. `node scripts/extract-kaikki.js <dump> <out> <k> <n>` — slim lemma records, slice k of n (4 in parallel).
-   Output `vendor-data/slim-<Lang>-<k>.jsonl`.
-3. TODO `scripts/build-lexeme-graph.js` — nodes/edges from slim records; then ancestor-language dumps
-   (download only the languages actually cited, by count); then layout (current radial layout first).
-4. Bring `graph/` back as one archive (device_stage_files), commit from the cloud clone.
+1. Download `kaikki.org/dictionary/<Lang>/` dumps. The file name drops spaces AND hyphens
+   (`ProtoIndoEuropean.jsonl`): read the link off the language's `index.html` rather than guessing.
+2. `[FORMS=1] node scripts/extract-kaikki.js <dump> <out> <k> <n>` → slim lemma records, slice k of n, plus
+   `<out>.langs.json` (code → name votes). FORMS=1 (English only) also keeps inflected forms as `{w,fo}`.
+   Records now carry the connector before each classic template (`j`: `+` part, `&` alternative, `.` new
+   sentence), affix-template ids/glosses as `<id:…>`/`<t:…>` on the part, `h` (Latin cantō for page canto), `id`.
+3. `node scripts/count-cited-langs.js <slim dir>` → which ancestor languages to fetch (≥300 citations).
+   67 fetched; 9 have no dump of their own (Anglo-Norman, Old Northern French, Old Latin, Frankish,
+   Middle Low German, Classical Persian, Biblical Hebrew, Medieval Greek, Gaulish): etymology-only
+   varieties, resolved against their parent language's titles where that has the word.
+4. `node --max-old-space-size=6000 scripts/build-lexeme-graph.js <slim dir>` → `g/` (~90 s). Template
+   parsing lives in `scripts/lexeme-lib.js` (bracket-depth scanner for `{{ety}}`).
+5. `node --max-old-space-size=6000 scripts/build-graph-layout.js` → `graph/` (~13 min), then bump `V` in graph.js.
+6. `node scripts/report-lexeme-graph.js <old graph dir>` → the numbers and checks for Will.
 
 Status is tracked at the bottom of this file.
 
@@ -48,8 +57,8 @@ Status is tracked at the bottom of this file.
 
 - [x] dumps downloaded (en, fr, de, la)
 - [x] extractor written and slice-tested
-- [x] extraction run → `carta-work/vendor-data/slim-<Lang>-<0..3>.jsonl` (repo clone at `carta-work/repo`)
-      lemmas / with relations / with IPA: English 962,474 / 475,442 / 128,473 · Français 103,564 / 51,040 / 78,661 ·
-      Deutsch 103,021 / 70,106 / 62,605 · Latina 54,642 / 32,712 / 39,123. Latin entries with a Descendants tree: 16,710.
-- [ ] graph builder
-- [ ] renderer: marks, switches, waypoints, folded derivatives
+- [x] extraction run (lemmas / with relations / with IPA: English 962,474 / 475,442 / 128,473 · Français
+      103,564 / 51,040 / 78,661 · Deutsch 103,021 / 70,106 / 62,605 · Latina 54,642 / 32,712 / 39,123)
+- [x] ancestor languages: 67 dumps fetched and extracted
+- [x] graph builder (`build-lexeme-graph.js`) and layout fed from it (`size4.bin`, `fold.bin`, `edgekind.bin`)
+- [ ] Will has seen the report (HANDOFF.md) → then renderer: marks, switches, waypoints, folded derivatives

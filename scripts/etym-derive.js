@@ -40,10 +40,15 @@ function clean(prose) {
   return s.replace(/[.;:,]+$/, "").trim();
 }
 
+let lastNames = null, lastRe = null;
+function langReOf(langNames) {   // built once per name list (it is the same list for a whole build)
+  if (langNames !== lastNames) { lastNames = langNames; lastRe = new RegExp("^(" + langNames.map((x) => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|") + ")\\s+(\\S+)$"); }
+  return lastRe;
+}
 function derive(word, prose, isWord, langNames, selfLang) {
   const s = clean(prose);
   if (!s) return null;
-  const langRe = new RegExp("^(" + langNames.map((x) => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|") + ")\\s+(\\S+)$");
+  const langRe = langReOf(langNames);
   const same = (t) => t && t !== word && (isWord(t) || isWord(t.toLowerCase()) || isWord(t[0].toUpperCase() + t.slice(1)));
   const isAff = (t) => /^-|-$/.test(t);
   // parts: "A + B (+ C)"

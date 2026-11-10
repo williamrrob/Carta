@@ -14,7 +14,7 @@
  *     purely relational — families that share compounds / cross-links are
  *     packed next to each other, inside regions by language group.
  *
- * Input: g/*.json (scripts/build-etym-graph.js) + rootwork.sqlite headwords.
+ * Input: g/*.json (scripts/build-lexeme-graph.js) + rootwork.sqlite headwords.
  * Output (served):
  *   graph/info.json      { n, families, langs, eras, bounds, regions, trees }
  *   graph/labels.json    [display term per node]
@@ -24,6 +24,14 @@
  *   graph/lang.bin       Uint16 language id per node
  *   graph/tree.bin       Int32 primary parent (-1 root)
  *   graph/links.bin      Int32 pairs child,parent (cross-links)
+ *   graph/size4.bin      Uint32 ×4 per node: drawn English, French, German, Latin words beneath it
+ *                        (over the primary-parent tree, itself not counted)
+ *   graph/fold.bin       bitset: folded derivatives/compounds (every parent in the same language);
+ *                        the parents they fold under are `fu` in the node details
+ *   graph/edgekind.bin   Uint8 per edge: first N bytes = node → its primary parent (tree.bin), then one
+ *                        per cross-link pair (links.bin order). Low 3 bits: 0 inherited, 1 borrowed,
+ *                        2 derived, 3 calque, 4 part (compound member/affix), 7 none; +8 from a
+ *                        Descendants tree, +16 inferred (stage bridge, {{root}})
  *   graph/n/<c>.json     node details for nodes c*1024 … c*1024+1023:
  *                        { i: { g, tr, up:[[idx,kind,inferred?]], en:[words], ne, dbl:[[word, viaIdx]], cog } }
  */
@@ -97,6 +105,7 @@ const T = (y) => -Math.log(2400 - Math.min(y, 2000));
 // ---- load nodes ------------------------------------------------------------------
 const recs = new Map();
 for (const f of fs.readdirSync(GDIR)) {
+  if (!/^[0-9a-f]{2}\.json$/.test(f)) continue;
   const j = JSON.parse(fs.readFileSync(path.join(GDIR, f), "utf8"));
   for (const k in j) recs.set(k, j[k]);
 }
@@ -117,8 +126,11 @@ process.stderr.write(`${N} nodes\n`);
 
 // ---- primary parents ---------------------------------------------------------------
 const KIND_W = { inh: 0, bor: 1, lbor: 1, der: 2, via: 2, cal: 3, cmp: 4, aff: 9 };
+const KCODE = { inh: 0, bor: 1, lbor: 1, der: 2, via: 2, cal: 3, cmp: 4, aff: 4 };
+const ekind = (u) => (KCODE[u[1]] ?? 2) | (u[3] === "d" ? 8 : 0) | (u[3] === "r" || u[3] === "s" ? 16 : 0);
 const parent = new Int32Array(N).fill(-1);
-const cross = [];
+const treeKind = new Uint8Array(N).fill(7);
+const cross = [], crossKind = [];
 let backwards = 0, affixRoots = 0;
 for (let i = 0; i < N; i++) {
   // a source is never younger than what came from it: a "parent" from a later stage (an Old
@@ -129,16 +141,25 @@ for (let i = 0; i < N; i++) {
   // an affix (-tis, -ālis, com-) is a building block, not a descendant: it heads its own family,
   // so a shared ending never chains unrelated roots together; its links stay as cross-links
   const t = recs.get(keys[i]).t || "";
-  if (/^\*?[-‐]|[-‐]$/.test(t.trim())) { for (const u of up) cross.push(i, idx.get(u[0])); affixRoots++; continue; }
+  if (/^\*?[-‐]|[-‐]$/.test(t.trim())) { for (const u of up) { cross.push(i, idx.get(u[0])); crossKind.push(ekind(u)); } affixRoots++; continue; }
   if (!up.length) continue;
   let best = 0;
   for (let j = 1; j < up.length; j++) if ((KIND_W[up[j][1]] ?? 5) < (KIND_W[up[best][1]] ?? 5)) best = j;
-  parent[i] = idx.get(up[best][0]);
-  for (let j = 0; j < up.length; j++) if (j !== best) cross.push(i, idx.get(up[j][0]));
+  parent[i] = idx.get(up[best][0]); treeKind[i] = ekind(up[best]);
+  for (let j = 0; j < up.length; j++) if (j !== best) { cross.push(i, idx.get(up[j][0])); crossKind.push(ekind(up[j])); }
 }
-for (let i = 0; i < N; i++) { // break cycles
+for (let i = 0; i < N; i++) { // break cycles: only a node ON the loop loses a parent (a node whose line
+  // merely runs into a loop keeps its own); within the loop, cut an edge from a Descendants tree or an
+  // inferred one if there is one, else this node's
   const seen = new Set([i]); let x = parent[i];
-  while (x >= 0) { if (seen.has(x)) { parent[i] = -1; break; } seen.add(x); x = parent[x]; }
+  while (x >= 0) {
+    if (x === i) {
+      let cut = i; for (let y = parent[i]; y !== i; y = parent[y]) if (treeKind[y] & 24) { cut = y; break; }
+      cross.push(cut, parent[cut]); crossKind.push(treeKind[cut]); parent[cut] = -1; treeKind[cut] = 7; break;
+    }
+    if (seen.has(x)) break;
+    seen.add(x); x = parent[x];
+  }
 }
 process.stderr.write(`dropped ${backwards} links that ran backwards in time; ${affixRoots} affixes stand as their own roots\n`);
 const kids = Array.from({ length: N }, () => []);
@@ -309,36 +330,47 @@ for (let i = 0; i < N; i++) { const x = xy[i * 2], y = xy[i * 2 + 1]; minx = Mat
 fs.rmSync(OUT, { recursive: true, force: true });
 fs.mkdirSync(path.join(OUT, "n"), { recursive: true });
 fs.writeFileSync(path.join(OUT, "labels.json"), JSON.stringify(labels));
+fs.writeFileSync(path.join(GDIR, "keys.json"), JSON.stringify(keys));   // index → node key (not served; for reports)
 fs.writeFileSync(path.join(OUT, "xy.bin"), Buffer.from(xy.buffer));
 fs.writeFileSync(path.join(OUT, "meta.bin"), Buffer.from(meta.buffer));
 fs.writeFileSync(path.join(OUT, "lang.bin"), Buffer.from(langArr.buffer));
 fs.writeFileSync(path.join(OUT, "tree.bin"), Buffer.from(parent.buffer));
 fs.writeFileSync(path.join(OUT, "links.bin"), Buffer.from(Int32Array.from(cross).buffer));
+fs.writeFileSync(path.join(OUT, "edgekind.bin"), Buffer.concat([Buffer.from(treeKind.buffer), Buffer.from(Uint8Array.from(crossKind).buffer)]));
+{
+  // words beneath each node, per language, over the primary-parent tree (drawn words only)
+  const FOURL = { en: 0, fr: 1, de: 2, la: 3 };
+  const size4 = new Uint32Array(N * 4);
+  const fold = new Uint8Array(Math.ceil(N / 8));
+  const order = []; for (const t of trees) for (const x of t.nodes) order.push(x);   // parents before children
+  for (let k = order.length - 1; k >= 0; k--) {
+    const x = order[k], p = parent[x]; if (p < 0) continue;
+    const r = recs.get(keys[x]);
+    for (let j = 0; j < 4; j++) size4[p * 4 + j] += size4[x * 4 + j];
+    if (r.lc && r.dr !== 0) size4[p * 4 + FOURL[r.lc]]++;
+  }
+  for (let i = 0; i < N; i++) if (recs.get(keys[i]).fold) fold[i >> 3] |= 1 << (i & 7);
+  fs.writeFileSync(path.join(OUT, "size4.bin"), Buffer.from(size4.buffer));
+  fs.writeFileSync(path.join(OUT, "fold.bin"), Buffer.from(fold.buffer));
+}
 // starting points: common headwords with at least three generations of ancestry
 const rankMap = new Map();
 for (const line of fs.readFileSync(path.join(ROOT, "review", "ranks.tsv"), "utf8").split("\n").slice(1)) {
   const t = line.lastIndexOf("\t"); if (t > 0) rankMap.set(line.slice(0, t), Number(line.slice(t + 1)));
 }
-// the quiet layer: Internet slang, neologisms, nonce words, and slang-only words, unless
-// they're common enough to matter (Wiktionary register labels; frequency rescues "surfing").
+// the quiet layer: words with no relations at all, and Internet slang, neologisms, nonce words and
+// slang-only words unless common (flagged dr:0 / q:1 by build-lexeme-graph.js; rank rescues "surfing").
 // They stay on the map (search and links still reach them) but aren't drawn until visited.
 {
   const quiet = new Uint8Array(Math.ceil(N / 8));
-  const KE = path.join(ROOT, "vendor-data", "kaikki-etym.jsonl");
   let nq = 0;
-  if (fs.existsSync(KE)) {
-    const q = new Map();
-    for (const line of fs.readFileSync(KE, "utf8").split("\n")) {
-      const k = line.indexOf('"q":"'); if (k < 0) continue;
-      const r = JSON.parse(line); q.set(r.w, r.q);
-    }
-    for (let i = 0; i < N; i++) {
-      const r = recs.get(keys[i]); if (r.l !== "English" || !r.hw) continue;
-      const tag = q.get(r.t); if (!tag) continue;
-      const rk = rankMap.get(r.t);
-      if (rk != null && rk <= (tag === "net" ? 15000 : 25000)) continue;
-      quiet[i >> 3] |= 1 << (i & 7); nq++;
-    }
+  // not drawn (scripts/build-lexeme-graph.js): no relations at all, or the quiet register layer
+  const hasKid0 = new Uint8Array(N);
+  for (let i = 0; i < N; i++) if (parent[i] >= 0) hasKid0[parent[i]] = 1;
+  for (let i = 0; i < cross.length; i += 2) { hasKid0[cross[i + 1]] = 1; hasKid0[cross[i]] = 1; }
+  for (let i = 0; i < N; i++) {
+    const r = recs.get(keys[i]);
+    if (r.dr === 0 || (r.hw && !r.up && parent[i] < 0 && !hasKid0[i])) { quiet[i >> 3] |= 1 << (i & 7); nq++; }
   }
   // set phrases built from English words ("lump together", "out of breath", "electric eel"):
   // their history is just their parts, which are already on the map, so as points they're
@@ -348,9 +380,10 @@ for (const line of fs.readFileSync(path.join(ROOT, "review", "ranks.tsv"), "utf8
     const hasKid = new Uint8Array(N);
     for (let i = 0; i < N; i++) if (parent[i] >= 0) hasKid[parent[i]] = 1;
     for (let i = 0; i < N; i++) {
-      if (langArr[i] !== 0 || hasKid[i] || !/\S\s+\S/.test(labels[i] || "")) continue;
+      const lc = recs.get(keys[i]).lc;
+      if (!lc || hasKid[i] || !/\S\s+\S/.test(labels[i] || "")) continue;
       const p = parent[i];
-      if (p >= 0 && langArr[p] !== 0) continue;
+      if (p >= 0 && langArr[p] !== langArr[i]) continue;
       if (!(quiet[i >> 3] & (1 << (i & 7)))) { quiet[i >> 3] |= 1 << (i & 7); nq++; }
     }
   }
@@ -386,7 +419,10 @@ for (let i = 0; i < N; i++) {
   if (r.hw && firstDef.has(r.t)) d.sd = firstDef.get(r.t);
   if (r.g && !r.hw) d.g = r.g;
   if (r.tr && !r.hw) d.tr = r.tr;
-  if (r.up) { const u = r.up.filter((x) => idx.has(x[0])).map((x) => (x[2] ? [idx.get(x[0]), x[1], 1] : [idx.get(x[0]), x[1]])); if (u.length) d.up = u; }
+  if (r.up) { const u = r.up.filter((x) => idx.has(x[0])).map((x) => (x[3] ? [idx.get(x[0]), x[1], x[2] ? 1 : 0, x[3]] : x[2] ? [idx.get(x[0]), x[1], 1] : [idx.get(x[0]), x[1]])); if (u.length) d.up = u; }
+  if (r.fold && r.fold.length) { const fu = r.fold.filter((k) => idx.has(k)).map((k) => idx.get(k)); if (fu.length) d.fu = fu; }
+  if (r.ipa) d.ipa = r.ipa;
+  if (r.lc && !r.hw && r.g) d.g = r.g;
   if (r.en) { d.en = r.en; d.ne = r.ne; }
   if (r.dbl) d.dbl = r.dbl.map((x) => (x[1] && idx.has(x[1]) ? [x[0], idx.get(x[1])] : [x[0]]));
   if (r.cog) d.cog = r.cog;

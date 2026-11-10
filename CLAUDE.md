@@ -42,11 +42,13 @@ release); search letters the query in place and marks matches on the map.
   (synonym → the gloss of this word's sense it belongs to).
 - `etym-parse.js` (browser + Node) parses etymology prose: the fallback for words
   the dumps don't cover, and the display cleaner for `e`.
-- `scripts/build-etym-graph.js` → `g/` (gitignored intermediate) → 
-  `scripts/build-graph-layout.js` → `graph/` (served: labels, xy/meta/lang/tree/links
-  binaries, `n/<chunk>.json` node details, `doublets.json`, `info.json`).
-  Rebuild: `npm run build:sqlite && node scripts/build-etym-graph.js && node scripts/build-graph-layout.js`,
-  then bump `V` in graph.js.
+- **The map's graph (four-language parity build, Nov 2026; see PARITY.md "Pipeline"):**
+  per-language kaikki dumps → `scripts/extract-kaikki.js` (slim records) →
+  `scripts/build-lexeme-graph.js <slim dir>` (template parsing in `scripts/lexeme-lib.js`) → `g/`
+  (gitignored intermediate) → `scripts/build-graph-layout.js` → `graph/` (served: labels, xy/meta/lang/
+  tree/links/quiet/size4/fold/edgekind binaries, `n/<chunk>.json` node details, `doublets.json`,
+  `info.json`) → `scripts/report-lexeme-graph.js <old graph/>` (numbers + checks). Then bump `V` in graph.js.
+  `scripts/build-etym-graph.js` is the previous, English-first builder (kept for reference; don't use).
 
 **Reader (French / German).** `reader.js` + `reader.css`, opened from the menu or the home
 buttons (❦ Lire / ❦ Lesen). Data: `python3 scripts/build-reader.py` → `reader/<fr|de>/`

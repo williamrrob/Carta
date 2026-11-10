@@ -1,0 +1,72 @@
+1. Points per language (all points / drawn)
+   language   old map              new map
+   en          269117 / 166632      246992 / 152456
+   fr           20442 / 20442       112908 / 63984
+   de           23806 / 23806       110920 / 85733
+   la           15507 / 15507        77655 / 53417
+   other       110075 / 110075      155524 / 155394
+   (new map total 703999 points, 500228 drawn after the layout's phrase rule; old 438947)
+   English dictionary entries not on the map (no page in words/, not an ancestor): 671218; kept as ancestors: 10164
+   per-language detail: {"ancestors":{"points":155524,"drawn":155394,"entries":70466,"folded":0,"quiet":0,"unconnected":0},"en":{"points":240061,"drawn":152456,"entries":237874,"folded":78141,"quiet":18342,"unconnected":77503},"fr":{"points":112908,"drawn":63984,"entries":98830,"folded":28880,"quiet":1162,"unconnected":48327},"de":{"points":110920,"drawn":85733,"entries":99717,"folded":54036,"quiet":687,"unconnected":24697},"la":{"points":77655,"drawn":53417,"entries":53452,"folded":25113,"quiet":60,"unconnected":24182}}
+
+2. Citations: exact 2389601 · by a language rule 224899 · bare 541627 · ambiguous 213684 (affixes 93034, words 120650)
+   homographs 433709: by id 71633, by Descendants list 12315, by gloss 27506, affix by what it forms 55190, by part of speech 53381; Descendants-tree items ambiguous 14438
+
+3. Of the 8511 starting words, 8069 (94.8%) reach an ancestor at least as old as before;
+   6404 (75.2%) have a primary line at least as many steps long. 0 are missing from the new map.
+   Twenty that got worse (word: old oldest ancestor → new oldest; old/new primary steps):
+     logistics: Proto-Indo-European (-4000) → Ancient Greek (-450); 9/2
+     experiential: Proto-Indo-European (-4000) → Latin (-50); 8/1
+     richards: Proto-Indo-European (-4000) → Proto-Germanic (-300); 11/4
+     cheque: Proto-Indo-European (-4000) → Latin (-50); 9/3
+     yacht: Proto-Indo-European (-4000) → Dutch (1800); 7/1
+     charleston: Proto-Indo-European (-4000) → English (2000); 6/0
+     bernard: Proto-Indo-European (-4000) → English (2000); 6/0
+     envoy: Proto-Indo-European (-4000) → French (1800); 7/1
+     dollar: Biblical Hebrew (-600) → Middle Low German (1300); 7/2
+     cantonese: Proto-Indo-European (-4000) → Etruscan (-500); 7/2
+     whitewater: Proto-Indo-European (-4000) → English (2000); 6/1
+     helen: Proto-Indo-European (-4000) → English (2000); 5/0
+     muir: Proto-Indo-European (-4000) → English (2000); 5/0
+     zero: Proto-Indo-European (-4000) → Latin (-50); 7/2
+     graffiti: Proto-Indo-European (-4000) → Italian (1850); 6/1
+     atlantic: Proto-Indo-European (-4000) → English (2000); 5/0
+     braun: Proto-Indo-European (-4000) → German (1800); 6/1
+     porto: Proto-Indo-European (-4000) → English (2000); 5/0
+     untold: Proto-Indo-European (-4000) → Old English (850); 6/1
+     usable: Proto-Indo-European (-4000) → Old French (1100); 6/1
+
+4. Checks
+   PASS  *h₃reǵ- is one family — 1 PIE point(s) [Proto-Indo-European|h₃reǵ-]; descend from it: Latin rēx ✓, Latin regō ✓, English right ✓, German recht ✓, English regal ✓
+   PASS  *steh₂- is one family — 1 PIE point(s) [Proto-Indo-European|steh₂-]; descend from it: Latin stō ✓, English stand ✓, German stehen ✓, French ester ✓, English state ✓
+   PASS  sister, Schwester, sœur, soror share a root — nearest shared ancestor Proto-Indo-European|swésōr; PIE: Proto-Indo-European|swésōr, Proto-Indo-European|*su-h₁ésh₂-ōr, Proto-Indo-European|swé, Proto-Indo-European|-sōr, Proto-Indo-European|h₁ésh₂r̥, Proto-Indo-European|sem-, Proto-Indo-European|wóyde, Proto-Indo-European|somHós, Proto-Indo-European|weyd-, Proto-Indo-European|-ós#2, Proto-Indo-European|-os, Proto-Indo-European|-ós
+   PASS  heart, Herz, cor, cœur share a root — nearest shared ancestor Proto-Indo-European|ḱerd-; PIE: Proto-Indo-European|ḱerd-
+   PASS  French cousin reaches *swésōr through cōnsobrīnus — cousin→cōnsobrīnus yes; cōnsobrīnus→*swésōr yes; shortest path: cousin (French) → cousin (Middle French) → cosin oblique singular or (Old French) → cōnsobrīnus (Latin) → sobrīnus (Latin) → swesrīnos (Proto-Italic) → swesōr (Proto-Italic) → swésōr (Proto-Indo-European)
+   PASS  German Cousine is borrowed from French cousine — parents: French|cousine (bor)
+   PASS  German Schadenfreude has two parents — German|Schaden (cmp), German|Freude (cmp)
+   PASS  French chanter resolves to one Latin verb — Latin ancestors: Latin|canto cantō, Latin|cano canō
+   PASS  English schadenfreude is borrowed from German — German|Schadenfreude (bor)
+
+5. Families that still look like duplicates (same language and form once marks and * are ignored, one of them a bare citation): 161 groups (plus 91 groups of the dictionary's own homographs). Largest twenty, with family sizes:
+   Proto-Indo-European: h₁én (843) · *h₁en [bare] (17)
+   Proto-Indo-European: pewǵ- (555) · *pewg- [bare] (4)
+   Proto-Indo-European: gʰreh₁- (434) · *ǵʰreh₁- [bare] (80)
+   Proto-Indo-European: nu (455) · *nū [bare] (4)
+   Proto-Indo-European: seǵʰ- (432) · *segʰ- [bare] (3)
+   Proto-Indo-European: kewk- (334) · *ḱewk- [bare] (20)
+   Proto-Indo-European: *ḱen- [bare] (187) · ken- (104)
+   Proto-Indo-European: weǵ- (225) · *weg- [bare] (36)
+   Proto-Indo-European: gʰrey- (203) · *gʰrēy- [bare] (38)
+   Proto-Indo-European: gew- (205) · *gēw- [bare] (12)
+   Ancient Greek: Λάιος [bare] (207) · Λᾱ́ῐ̈ος (6)
+   Proto-Indo-European: meh₂- (132) · *méh₂- [bare] (66)
+   Proto-Germanic: *keukô [bare] (176) · *keukǭ [bare] (18)
+   Proto-Indo-European: *ǵʰel- [bare] (97) · gʰel- (66)
+   Proto-Indo-European: *līnom [bare] (143) · *linom [bare] (10)
+   Proto-Indo-European: *ḱewb- [bare] (76) · *kewb- [bare] (73)
+   Proto-Indo-European: meh₂ḱ- (111) · *meh₂k- [bare] (8)
+   Proto-Indo-European: derḱ- (108) · *derk- [bare] (6)
+   Proto-Indo-European: *ḱeh₃- [bare] (59) · keh₃- (52)
+   Arabic: قَهْوَة [bare] (102) · قَهْوَة (3)
+
+6. IPA for the 25,000 most common English words: 20362 (81.4%); 24877 of them are dictionary points; 4515 points lack IPA, e.g. pm, jan, details, terms, posted, uk, hours, cd, conditions, windows, june, november
