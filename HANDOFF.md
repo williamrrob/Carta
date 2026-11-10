@@ -23,12 +23,13 @@
 Open for Will (not decided in PARITY.md):
 1. English points = the ~240k words that have a page in `words/` (+10k other English entries kept
    because something descends from them). 671k other English dictionary entries are left off the map.
-2. Depth target missed: 94.8% of the 8,511 starting words reach an ancestor at least as old as before
+2. (Accepted by Will, Nov 10.) Depth target missed: 94.8% of the 8,511 starting words reach an ancestor at least as old as before
    (target 97%). The ~440 that don't: names whose dictionary page has no etymology (charleston,
    helen); app headwords that are a different word from the old guess (`words/` *june* is the slang
    verb "to rush"); old links that were wrong (dollar ← Biblical Hebrew, zero ← PIE); chains that stop
    where the ancestor's entry says nothing further (Latin *experientiālis* has no page).
-3. Reconstructed spelling variants still split families (PIE *h₁en / h₁én, *ǵʰreh₁- / gʰreh₁-).
+3. (Nov 10: accent-only variants now fold — accent on a vowel marks stress; palatal ḱ/ǵ and length
+   marks stay distinct.) Reconstructed spelling variants still split families (PIE *h₁en / h₁én, *ǵʰreh₁- / gʰreh₁-).
    Folding them would mean ignoring accents or palatal marks in reconstructions: a rule, not the
    dictionary. Leave, or fold a bare citation onto an entry that differs only by an accent?
 

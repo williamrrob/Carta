@@ -86,6 +86,9 @@ const MAC_BREVE_DOT = /[̣̄̆̇]/g, MAC_BREVE = /[̄̆]/g;
 function ruleOf(fam) {
   if (fam === "Latin" || fam === "Old Latin" || fam === "Old English") return (s) => strip(s.replace(/^\*/, ""), MAC_BREVE_DOT);
   if (fam === "Ancient Greek") return (s) => strip(s.replace(/^\*/, ""), MAC_BREVE);
+  // reconstructions: an accent on a vowel or resonant marks stress, not a different word (*h₁en = h₁én);
+  // the acute on k/g is the palatal (ḱ, ǵ), a different sound, and stays
+  if (/^Proto-/.test(fam)) return (s) => s.replace(/^root\s+/, "").replace(/^\*/, "").normalize("NFD").replace(/([^kgKG])[\u0301\u0300]/g, "$1").normalize("NFC");
   return (s) => s.replace(/^root\s+/, "").replace(/^\*/, "");
 }
 const rules = new Map();
