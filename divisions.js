@@ -232,6 +232,145 @@
     };
   })();
 
+
+  // ---- Saved: your words and excerpts; Settings at the foot --------------------------------------
+  // Bookmarks: English words share the English quiz's list ("rootwork.saved"); any other map point
+  // is kept by spelling and language ("carta.marks"), so a rebuilt map still finds it.
+  const marks = {
+    list() { return store.get("carta.marks", []); },
+    has(w, l) { return l === "English" ? !!(window.Carta && Carta.savedEn().includes(w)) : marks.list().some((m) => m.w === w && m.l === l); },
+    toggle(w, l) {
+      if (l === "English") return Carta.toggleSavedEn(w);
+      const a = marks.list(), k = a.findIndex((m) => m.w === w && m.l === l);
+      if (k >= 0) a.splice(k, 1); else a.unshift({ w, l, d: Date.now() });
+      store.set("carta.marks", a); return k < 0;
+    },
+  };
+  const excerpts = {
+    list() { return store.get("carta.excerpts", []); },
+    has(q) { return excerpts.list().some((x) => x.q.t === q.t); },
+    toggle(lc, q) {
+      const a = excerpts.list(), k = a.findIndex((x) => x.q.t === q.t);
+      if (k >= 0) a.splice(k, 1); else a.unshift({ lc, q: { t: q.t, w: q.w, a: q.a, r: q.r, en: q.en } });
+      store.set("carta.excerpts", a); return k < 0;
+    },
+  };
+  const savedDiv = (function () {
+    let page, body, last = "";
+    const LC = { fr: "French", de: "German" }, SHORT = { English: "en", French: "fr", German: "de" };
+    function openWord(w, l) {
+      const rm = RM(); if (!rm || !rm.loaded()) return;
+      const i = l === "English" ? rm.find(w) : rm.findIn(l, w);
+      if (i < 0) return;
+      last = w;
+      swap(true, () => { if (rm.info(i).isWord) Carta.run(rm.label(i)); else Carta.openNode(i, true); });
+    }
+    function row(w, l, flag, act) {
+      const r = el("div", "sv-row");
+      const b = button("sv-w");
+      b.append(el("span", "sv-word", w), el("span", "sv-lang sc", SHORT[l] || l));
+      if (flag) b.appendChild(el("span", "sv-flag", "· keeps coming back"));
+      b.addEventListener("click", () => openWord(w, l));
+      r.appendChild(b);
+      if (act) r.appendChild(act);
+      return r;
+    }
+    function draw() {
+      body.innerHTML = "";
+      const head = el("header", "dv-head"); head.appendChild(el("span", "sc", "Saved")); body.appendChild(head);
+      body.appendChild(el("div", "sc sv-sec", "Words"));
+      const rows = [], seen = new Set();
+      const star = (w, l) => { const b = button("sv-act sv-star", "★", "Remove bookmark"); b.addEventListener("click", () => { marks.toggle(w, l); draw(); }); return b; };
+      // taken back within the day: "I know this" by mistake
+      for (const lc of ["fr", "de"]) {
+        const st = window.CartaLearn && CartaLearn.loadState(lc);
+        if (st && st.undo && Date.now() - st.undo.d < 864e5) {
+          const w = st.undo.k.replace(/#.*$/, ""), u = button("sv-act sv-undo", "undo", "Undo I know this");
+          u.addEventListener("click", () => { CartaLearn.undoKnow(lc, st.undo.k); draw(); });
+          rows.push(row(w, LC[lc], false, u)); seen.add(LC[lc] + "|" + w);
+        }
+      }
+      for (const w of (window.Carta ? Carta.savedEn() : []).slice().reverse()) { rows.push(row(w, "English", false, star(w, "English"))); seen.add("English|" + w); }
+      for (const m of marks.list()) { rows.push(row(m.w, m.l, false, star(m.w, m.l))); seen.add(m.l + "|" + m.w); }
+      for (const lc of ["fr", "de"]) {
+        const ws = window.CartaLearn ? CartaLearn.words(lc) : {};
+        Object.keys(ws).sort((a, b) => ((ws[b] && ws[b].n) || 0) - ((ws[a] && ws[a].n) || 0)).forEach((k) => {
+          const w = k.replace(/#.*$/, ""); if (seen.has(LC[lc] + "|" + w)) return; seen.add(LC[lc] + "|" + w);
+          rows.push(row(w, LC[lc], ws[k] && ws[k].n >= 3, null));
+        });
+      }
+      if (rows.length) rows.forEach((r) => body.appendChild(r));
+      else body.appendChild(el("p", "sv-empty", "Words you tap while translating, and words you bookmark, collect here."));
+      const ex = excerpts.list();
+      body.appendChild(el("div", "sc sv-sec", "Excerpts"));
+      if (!ex.length) body.appendChild(el("p", "sv-empty", "Bookmark an example on a word’s card to keep it here."));
+      for (const x of ex) {
+        const r = el("div", "sv-row");
+        const b = button("sv-ex"); b.lang = x.lc;
+        b.append(document.createTextNode("“" + (x.q.t.length > 90 ? x.q.t.slice(0, 88) + "…" : x.q.t) + "” "), el("span", "sv-lang sc", (x.q.a || "").split(" ").pop()));
+        b.addEventListener("click", () => { if (window.CartaLearn && CartaLearn.queue(x.lc, x.q)) CartaLearn.open(x.lc); });
+        const s = button("sv-act sv-star", "★", "Remove bookmark"); s.addEventListener("click", () => { excerpts.toggle(x.lc, x.q); draw(); });
+        r.append(b, s); body.appendChild(r);
+      }
+      body.appendChild(settings());
+    }
+    // ☞ points at the choice in force (Priestley's own pointing hand)
+    function choice(label, opts, curv, set) {
+      const r = el("div", "sv-set"); r.setAttribute("role", "radiogroup"); r.setAttribute("aria-label", label);
+      r.appendChild(el("span", "sv-set-l", label));
+      for (const [v, t] of opts) {
+        const b = button("sv-opt"); b.setAttribute("role", "radio"); b.setAttribute("aria-checked", String(v === curv));
+        if (v === curv) b.appendChild(el("span", "sv-hand", "☞ "));
+        b.appendChild(el("i", null, t));
+        b.addEventListener("click", () => { set(v); draw(); });
+        r.appendChild(b);
+      }
+      return r;
+    }
+    function settings() {
+      const d = el("details", "sv-settings"); d.open = !!store.get("carta.settingsOpen", false);
+      d.addEventListener("toggle", () => store.set("carta.settingsOpen", d.open));
+      d.appendChild(el("summary", "sc", "Settings"));
+      const box = el("div", "sv-set-box");
+      const look = el("div", "sv-set"); look.append(el("span", "sv-set-l", "Look"), el("i", "sv-set-v", "Priestley")); box.appendChild(look);
+      let quiet = false; try { quiet = localStorage.getItem("rootwork.showQuiet") === "1"; } catch (e) {}
+      box.appendChild(choice("Slang and new words", [[false, "hidden"], [true, "shown"]], quiet, (v) => {
+        try { localStorage.setItem("rootwork.showQuiet", v ? "1" : ""); } catch (e) {} if (RM()) RM().setOptions({ showQuiet: v });
+      }));
+      let rate = 0; try { rate = +localStorage.getItem("carta.read.rate") || 0; } catch (e) {}
+      box.appendChild(choice("Reading speed", [[0, "1×"], [1, "0.8×"], [2, "0.6×"]], rate, (v) => { try { localStorage.setItem("carta.read.rate", String(v)); } catch (e) {} }));
+      const acts = el("div", "sv-set-acts");
+      const reset = button("sv-btn", "Reset a level");
+      reset.addEventListener("click", () => {
+        acts.innerHTML = "";
+        for (const lc of ["fr", "de"]) {
+          if (!(window.CartaLearn && CartaLearn.loadState(lc))) continue;
+          const b = button("sv-btn", CartaLearn.LANG[lc].own);
+          b.addEventListener("click", () => { CartaLearn.resetLevel(lc); b.textContent = CartaLearn.LANG[lc].own + " · reset"; b.disabled = true; });
+          acts.appendChild(b);
+        }
+        if (!acts.children.length) acts.appendChild(el("i", "sv-set-v", "No level set yet"));
+      });
+      const upd = button("sv-btn", "Check for updates");
+      upd.addEventListener("click", () => {
+        if (!window.cartaCheckUpdate || upd.disabled) return;
+        upd.disabled = true; upd.textContent = "Checking…";
+        window.cartaCheckUpdate().then((r) => { upd.textContent = r === "current" ? "Up to date" : r === "offline" ? "Offline" : "Updating…"; setTimeout(() => { upd.disabled = false; upd.textContent = "Check for updates"; }, 2500); });
+      });
+      acts.append(reset, upd);
+      box.appendChild(acts);
+      d.appendChild(box);
+      return d;
+    }
+    return {
+      mount(p) { page = p; body = el("div", "dv-scroll sv"); page.appendChild(body); },
+      enter() { draw(); },
+      again() { draw(); },
+      strip() { return { cap: "Saved", body: el("span", "dv-strip-line", last) }; },
+    };
+  })();
+  define("Saved", savedDiv);
+
   // ---- public -------------------------------------------------------------------------------
   function define(n, m) { mods[n] = m; if (started && n === cur) { ensureMounted(n); render(); if (m.enter) m.enter(); } }
   define("Search", search);
@@ -241,6 +380,7 @@
     page: (n) => pages[n],
     placeMap,                                   // a module whose window moved calls this
     restrip: () => { if (swapped) render(); },
+    marks, excerpts,
   };
 
   function start() {

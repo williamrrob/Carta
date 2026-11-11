@@ -751,3 +751,17 @@ button, input, select, textarea, .alpha-tab, .save-btn { font-family: inherit; }
 :root[data-look="priestley"] .ln-strip-ex b { background: var(--ink); color: #f1e8d3; padding: 0 3px; font-weight: 400; }
 :root[data-look="priestley"] .ln-strip-you { border-top: .6px solid var(--ink); font-size: 14px; }
 :root[data-look="priestley"] .ln-listen, :root[data-look="priestley"] .ln-close, :root[data-look="priestley"] .ln-skip { color: var(--ink); font-family: var(--font); }
+/* Saved */
+:root[data-look="priestley"] .sv-row { border-top: .6px solid var(--ink); }
+:root[data-look="priestley"] .sv-word { font-size: 17px; }
+:root[data-look="priestley"] .sv-lang, :root[data-look="priestley"] .sv-act, :root[data-look="priestley"] .sv-empty, :root[data-look="priestley"] .sv-set-v { color: var(--muted); }
+:root[data-look="priestley"] .sv-lang { letter-spacing: .12em; font-style: normal; }
+:root[data-look="priestley"] .sv-star { font-size: 17px; }
+:root[data-look="priestley"] .sv-undo { font-size: 12px; font-family: var(--font); }
+:root[data-look="priestley"] .sv-flag { color: var(--red); font-size: 13px; }
+:root[data-look="priestley"] .sv-settings { border-top: 1.5px solid var(--ink); }
+:root[data-look="priestley"] .sv-opt { color: var(--muted); font-family: var(--font); }
+:root[data-look="priestley"] .sv-opt[aria-checked="true"] { color: var(--ink); }
+:root[data-look="priestley"] .sv-hand { font-style: normal; font-size: 17px; }
+:root[data-look="priestley"] .sv-btn { background: transparent; border: 1px solid var(--ink); color: var(--ink); font-family: var(--font); font-size: 11px; letter-spacing: .2em; text-transform: uppercase; }
+:root[data-look="priestley"] .sv-btn:active, :root[data-look="priestley"] .sv-w:active, :root[data-look="priestley"] .sv-ex:active { background: var(--you); }

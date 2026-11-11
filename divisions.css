@@ -113,3 +113,22 @@
 
 /* the English quiz (app.js) opens over the Learn page */
 .app[data-div] #quiz:not([hidden]) { position: fixed; z-index: 8; inset: 0; }
+
+/* Saved */
+.sv { gap: 0; }
+.sv-sec { margin: 14px 0 6px; }
+.sv-row { display: flex; align-items: center; min-height: 48px; }
+.sv-w, .sv-ex { flex: 1 1 auto; text-align: left; border: 0; background: none; font: inherit; color: inherit; padding: 6px 0; cursor: pointer; }
+.sv-w { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+.sv-ex { font-size: 15px; font-style: italic; line-height: 1.45; }
+.sv-act { border: 0; background: none; font: inherit; min-width: 44px; min-height: 44px; cursor: pointer; }
+.sv-empty { margin: 4px 0 8px; font-size: 14px; font-style: italic; }
+.sv-settings { margin-top: 18px; padding-top: 8px; }
+.sv-settings summary { min-height: 36px; display: flex; align-items: center; cursor: pointer; list-style: none; }
+.sv-settings summary::-webkit-details-marker { display: none; }
+.sv-set-box { display: flex; flex-direction: column; gap: 4px; font-size: 15px; }
+.sv-set { display: flex; align-items: center; min-height: 40px; gap: 4px; flex-wrap: wrap; }
+.sv-set-l { flex: 1 1 auto; }
+.sv-opt { border: 0; background: none; font: inherit; min-height: 40px; padding: 0 6px; cursor: pointer; }
+.sv-set-acts { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+.sv-btn { flex: 1 1 0; min-height: 44px; padding: 0 10px; cursor: pointer; white-space: nowrap; }

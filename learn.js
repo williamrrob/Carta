@@ -190,7 +190,8 @@
     box.appendChild(el("p", "ln-note", "Excerpts are picked so only one to three words are new. Write what each says in English; tap a word to see where it comes from."));
     for (const [, label, z, sub] of LEVELS[lc]) {
       const b = button("ln-big ln-level"); b.append(el("span", null, label), el("i", null, sub));
-      b.addEventListener("click", () => { st = { v: 2, z, known: {}, learn: {}, seen: {}, author: null, n: 0 }; save(); next(false); });
+      // a reset level keeps your words; only the stretch starts again
+      b.addEventListener("click", () => { st = st ? Object.assign(st, { z, z0: z, hist: [], reset: 0 }) : { v: 2, z, known: {}, learn: {}, seen: {}, author: null, n: 0 }; save(); next(false); });
       box.appendChild(b);
     }
     scroll.appendChild(box);
@@ -209,7 +210,7 @@
     scroll.innerHTML = '<div class="ln-block"><p class="ln-note">Loading…</p></div>';
     try { await load(lc); } catch (e) { scroll.innerHTML = '<div class="ln-block"><p class="ln-note">Couldn’t load the excerpts.</p></div>'; return; }
     st = loadState(lc);
-    if (!st) return placement();
+    if (!st || st.reset) return placement();
     if (st.cur && st.cur.t) { cur = st.cur; render(); } else next(false);
   }
   async function next(commit) {
@@ -553,6 +554,13 @@
   // older entry points (map menu) land here now
   window.CartaReader = { open(l) { window.CartaDiv.go("Learn"); translate(l); }, close() {} };
   window.CartaLearn = {
+    LANG, loadState, wk,
+    words(l) { const s = loadState(l); return s ? s.learn : {}; },
+    lex(l) { return load(l).then(() => D[l].lex); },
+    // "I know this" taken back: the word goes back on your pile
+    undoKnow(l, k) { const s = loadState(l); if (!s) return; delete s.known[k]; s.learn[k] = { n: 1, s: 0, due: Date.now() }; s.undo = null; try { localStorage.setItem(SKEY(l), JSON.stringify(s)); } catch (e) {} if (st && lc === l) st = s; },
+    resetLevel(l) { const s = loadState(l); if (!s) return; s.reset = 1; s.cur = null; try { localStorage.setItem(SKEY(l), JSON.stringify(s)); } catch (e) {} if (lc === l) st = s; },
+    open(l) { window.CartaDiv.go("Learn"); translate(l); },
     // a word card's example: it becomes your next excerpt
     queue(l, q) { const s = loadState(l); if (!s) return false; (s.queue = s.queue || []).unshift(q); try { localStorage.setItem(SKEY(l), JSON.stringify(s)); } catch (e) {} return true; },
   };
