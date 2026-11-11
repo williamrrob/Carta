@@ -2877,7 +2877,7 @@
     const lc = lang === "French" ? "fr" : lang === "German" ? "de" : null;
     if (!lc || !window.CartaLearn) return null;
     let rows;
-    try { rows = (await (await RootMap.fetchGraph("ex/" + Math.floor(i / 1024) + ".json")).json())[i]; } catch (e) { return null; }
+    try { rows = (await (await fetch("graph/ex/" + Math.floor(i / 1024) + ".json?v=2")).json())[i]; } catch (e) { return null; }
     if (token !== runToken || !rows || !rows.length) return null;
     const card = el("div", "card ex-card");
     card.appendChild(el("div", "cap", "Examples"));
@@ -2889,7 +2889,7 @@
       if (a) p.appendChild(el("span", "ex-by", " " + a));
       row.appendChild(p);
       const acts = el("div", "ex-acts");
-      const fetchQ = function () { return fetch("reader/" + rlc + "/q/" + band + ".json?v=5").then(function (x) { return x.json(); }).then(function (b) { return b[k]; }); };
+      const fetchQ = function () { return fetch("reader/" + rlc + "/q/" + band + ".json?v=6").then(function (x) { return x.json(); }).then(function (b) { return b[k]; }); };
       const tr = el("button", "lin-part", "Translate this"); tr.type = "button";
       tr.addEventListener("click", function () { fetchQ().then(function (q) { if (q && CartaLearn.queue(rlc, q)) CartaLearn.open(rlc); else if (q) { CartaLearn.open(rlc); } }); });
       const st = el("button", "ex-star", CartaDiv.excerpts.has({ t: t }) ? "★" : "☆"); st.type = "button"; st.setAttribute("aria-label", "Keep in Saved");

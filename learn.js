@@ -9,7 +9,7 @@
 (function () {
   "use strict";
   const LANG = { fr: { name: "French", own: "Français" }, de: { name: "German", own: "Deutsch" } };
-  const V = "5";
+  const V = "6"; // reader/ files (bump when reader/ is rebuilt)
   const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
   const button = (cls, txt, label) => { const b = el("button", cls, txt); b.type = "button"; if (label) b.setAttribute("aria-label", label); return b; };
   const get = (p) => fetch("reader/" + p + "?v=" + V).then((r) => { if (!r.ok) throw new Error(p); return r.json(); });
@@ -258,7 +258,7 @@
     });
     if (at < q.t.length) p.appendChild(document.createTextNode(q.t.slice(at)));
     top.appendChild(p);
-    if (q.r || q.a) top.appendChild(el("p", "ln-src sc", (q.r || q.a).replace(/:$/, "")));
+    if (q.r || q.a) top.appendChild(el("p", "ln-src sc", (q.r || q.a).replace(/,?\s*→ISBN\b[^,]*/g, "").replace(/[:,]\s*$/, "")));
     // the window onto the map: empty space in the page, with the map behind it
     const fig = el("figure", "ln-inlay"); fig.hidden = true;
     fig.innerHTML = '<div class="ln-co"></div>';
