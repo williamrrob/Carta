@@ -154,3 +154,5 @@
   .app[data-div] .dv-key:not([hidden]) { left: auto; width: 520px; right: 16px; }
   .app[data-div="Explore"] .dv-langs:not([hidden]) { right: auto; justify-content: flex-start; gap: 34px; }
 }
+/* the trace's caption sits under Explore's language line */
+.app[data-div] .trace-cap { top: calc(env(safe-area-inset-top) + 66px) !important; }

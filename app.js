@@ -455,7 +455,7 @@
     mapWord = null;
     calloutFor = -1;
     setSheet("home");
-    if (window.RootMap && RootMap.loaded()) { RootMap.setGlobal(null); RootMap.overview(); if (lensName === "doublets") applyLens(); }
+    if (window.RootMap && RootMap.loaded()) { RootMap.setGlobal(null); RootMap.overview(); }
     if (contentEl) contentEl.scrollTop = 0;
     if (dockEl) dockEl.classList.remove("dock-hide");
     if (contentEl) contentEl.classList.remove("dock-hidden");
@@ -2408,20 +2408,6 @@
   var arrivedFrom = null;
   function takeNextSheet() { const s = nextSheet || "callout"; nextSheet = null; return s; }
   let lastStart = -1;
-  function randomStart() {
-    if (!window.RootMap) return;
-    RootMap.ready.then(function () {
-      const pool = RootMap.starts();
-      if (!pool.length) return;
-      let i = pool[Math.floor(Math.random() * pool.length)];
-      if (i === lastStart && pool.length > 1) i = pool[(pool.indexOf(i) + 1) % pool.length];
-      lastStart = i;
-      nextSheet = "callout";
-      run(RootMap.info(i).label);
-    });
-  }
-  const randomBtn = $("randomBtn");
-  if (randomBtn && typeof randomBtn.addEventListener === "function") randomBtn.addEventListener("click", randomStart);
   // first open stays on the whole map; "Somewhere else" is the way to be dropped at random
 
 
@@ -2433,16 +2419,16 @@
       acts: [["Explore", "Explore", "the whole chart"], ["Learn", "Learn", "translate · quiz"], ["Search", "Search", "find a word"], ["Saved", "Saved", "your words, excerpts, settings"]],
       found: function (n, m) { return "An index of " + n + " name" + (n === 1 ? "" : "s") + " · " + m + " upon this chart"; }, q: function (t) { return t.toUpperCase(); } },
     ortelius: { name: "Ortelius", sub: "Typus Orbis Terrarum, 1570", theme: "light", meta: "#ecdfbf", open: "Read the text",
-      acts: [["Search", "Search"], ["Wander", "Wander"], ["Step out", "Step out"], ["Back", "Back"], ["Menu", "Contents"]],
+      acts: [["Search", "Search"], ["Step out", "Step out"], ["Back", "Back"], ["Menu", "Contents"]],
       found: function (n, m) { return n + " place" + (n === 1 ? "" : "s") + " so called; " + m + " upon this land"; }, q: function (t) { return t.toUpperCase().replace(/U/g, "V"); } },
     blueprint: { name: "Blueprint", sub: "Clydebank shipyard, 1930s", theme: "dark", meta: "#14457f", open: "Open drawing →",
-      acts: [["Search", "Search", "S"], ["Wander", "Wander", "W"], ["Step out", "Step out", "O"], ["Back", "Back", "B"], ["Menu", "Menu", "C"]],
+      acts: [["Search", "Search", "S"], ["Step out", "Step out", "O"], ["Back", "Back", "B"], ["Menu", "Menu", "C"]],
       found: function (n, m) { return "Found " + n + " · " + m + " on this sheet"; }, q: function (t) { return t.toUpperCase(); } },
     planisphere: { name: "Planisphere", sub: "Philip's, 32 Fleet Street", theme: "dark", meta: "#1c2541", open: "Turn it over",
-      acts: [["Search", "Search"], ["Wander", "Wander"], ["Step out", "Step out"], ["Back", "Back"], ["Menu", "Contents"]],
+      acts: [["Search", "Search"], ["Step out", "Step out"], ["Back", "Back"], ["Menu", "Contents"]],
       found: function (n, m) { return n + " star" + (n === 1 ? "" : "s") + " of that name · " + m + " in the window"; }, q: function (t) { return t; } },
     netscape: { name: "Netscape", sub: "Navigator 1.1, 1995", theme: "light", meta: "#c0c0c0", open: "Open Entry",
-      acts: [["Back", "Back"], ["Step out", "Home"], ["Search", "Find"], ["Wander", "What's Cool!"], ["Menu", "Options"]],
+      acts: [["Back", "Back"], ["Step out", "Home"], ["Search", "Find"], ["Menu", "Options"]],
       found: function (n, m) { return n + " document" + (n === 1 ? "" : "s") + " found · " + m + " on this map"; }, q: function (t) { return t; } },
   };
   var LOOK_ORDER = ["priestley", "ortelius", "blueprint", "planisphere", "netscape"];
@@ -2510,7 +2496,6 @@
     actsOpen(false);
     if (window.CartaDiv && CartaDiv.has(name)) { CartaDiv.go(name); return; }
     if (name === "Search") openSearch();
-    else if (name === "Wander") wander();
     else if (name === "Step out") stepOut();
     else if (name === "Back") goBack();
     else if (name === "Menu") { const kb = $("mapKeyBtn"); if (kb) kb.click(); }
@@ -2575,35 +2560,6 @@
     if (lookName === "netscape" && nsMsg) nsMsg.textContent = list.length ? "carta://" + list[0] : "Document: Done";
   }
 
-  // wander: one meaningful hop — a word that shares an ancestor with this one, and why
-  function wander() {
-    if (!window.RootMap || !RootMap.loaded() || !mapWord) { randomStart(); return; }
-    const i = mapWord[0] === "@" ? Number(mapWord.slice(1)) : RootMap.find(mapWord);
-    if (i < 0) { randomStart(); return; }
-    const here = RootMap.info(i).label.toLowerCase();
-    const anc = RootMap.lineage(i).slice(0, 4);
-    for (let k = 0; k < anc.length; k++) {
-      const seen = {}, pool = [];
-      (function walk(n, depth) {
-        RootMap.children(n).forEach(function (c) {
-          if (seen[c]) return; seen[c] = 1;
-          const inf = RootMap.info(c);
-          if (inf.isWord && inf.label.toLowerCase() !== here && c !== i) pool.push(c);
-          else if (depth < 2) walk(c, depth + 1);
-        });
-      })(anc[k], 0);
-      if (pool.length) {
-        const pick = pool[Math.floor(Math.random() * pool.length)], a = RootMap.info(anc[k]);
-        const msg = RootMap.info(pick).label + " also comes from " + a.lang + " " + a.label;
-        nextSheet = "callout";
-        run(RootMap.info(pick).label);
-        setTimeout(function () { say(lookName === "netscape" ? "What's Cool!: " + msg : msg); }, 400);
-        return;
-      }
-    }
-    randomStart();
-  }
-
   // while you pan and pinch, everything that isn't the map steps aside
   var exploreT = 0;
   function exploring(on) {
@@ -2633,146 +2589,6 @@
   }
   applyLook(lookName, false);
 
-  // ---- the doublet hunt: one source reached English twice; find the other road ----
-  // Played in the sheet with the map above it: answering flies the fork.
-  let huntPoolP = null;
-  const hunt = { streak: 0, best: 0, recent: [] };
-  try { hunt.best = Number(localStorage.getItem("rootwork.huntBest")) || 0; } catch (e) {}
-  function loadHunt() {
-    if (!huntPoolP) huntPoolP = fetch("doublets.json?v=1").then(function (r) { return r.ok ? r.json() : []; }).catch(function () { return []; });
-    return huntPoolP;
-  }
-  async function openHunt() {
-    if (!window.RootMap) return;
-    const token = ++runToken;
-    await RootMap.ready;
-    const pool = (await loadHunt()).filter(function (p) { return RootMap.find(p[0]) >= 0 && RootMap.find(p[1]) >= 0; });
-    const pairs = await loadDblPairs();
-    if (token !== runToken || pool.length < 4) return;
-    let pick = null;
-    for (let tries = 0; tries < 30 && !pick; tries++) {
-      const p = pool[Math.floor(Math.random() * Math.min(pool.length, 260))];
-      if (hunt.recent.indexOf(p[0] + p[1]) < 0) pick = p;
-    }
-    pick = pick || pool[0];
-    hunt.recent.push(pick[0] + pick[1]); if (hunt.recent.length > 40) hunt.recent.shift();
-    const flip = Math.random() < 0.5;
-    const prompt = flip ? pick[1] : pick[0], answer = flip ? pick[0] : pick[1];
-    const pi = RootMap.find(prompt), ai = RootMap.find(answer);
-    const pr = pairs.find(function (q) { return (q[0] === pi && q[1] === ai) || (q[0] === ai && q[1] === pi); });
-    const via = pr && pr[2] >= 0 ? pr[2] : -1;
-    // distractors: other hunt words, never the prompt's own doublets
-    const own = new Set([prompt, answer]);
-    pairs.forEach(function (q) { if (q[0] === pi) own.add(RootMap.info(q[1]).label); if (q[1] === pi) own.add(RootMap.info(q[0]).label); });
-    // near-miss wrong answers: a cousin (same root, different word), a
-    // sense-alike (a synonym), a look-alike (similar spelling)
-    const opts = [answer];
-    const why = {};
-    const ok = function (w) { return w && !own.has(w) && opts.indexOf(w) < 0 && /^[a-z]{3,}$/.test(w) && RootMap.find(w) >= 0; };
-    const anc = RootMap.lineage(pi).slice(0, 5);
-    for (const a of anc) {
-      const d = await RootMap.details(a);
-      const c = (d.en || []).filter(ok);
-      if (c.length) { const w = c[Math.floor(Math.random() * Math.min(c.length, 8))]; opts.push(w); why[w] = { kind: "cousin", via: a }; break; }
-    }
-    const prec = await getWord(prompt);
-    const syn = ((prec && prec.s) || []).filter(ok);
-    if (syn.length && opts.length < 4) { const w = syn[0]; opts.push(w); why[w] = { kind: "sense" }; }
-    const sh = await fetchShard(prompt.slice(0, 2).toLowerCase());
-    if (sh && opts.length < 4) {
-      const stem = prompt.slice(0, 3).toLowerCase();
-      const look = Object.keys(sh).filter(function (w) { return w.indexOf(stem) === 0 && Math.abs(w.length - prompt.length) <= 3 && sh[w].d && sh[w].d.length && ok(w); });
-      if (look.length) { const w = look[Math.floor(Math.random() * Math.min(look.length, 12))]; opts.push(w); why[w] = { kind: "look" }; }
-    }
-    if (token !== runToken) return;
-    // never claim "unrelated" for a word that shares an ancestor with the prompt
-    const ancSet = new Set(RootMap.lineage(pi));
-    Object.keys(why).forEach(function (w) {
-      if (why[w].kind === "cousin") return;
-      const hit = RootMap.lineage(RootMap.find(w)).find(function (x) { return ancSet.has(x); });
-      if (hit != null) why[w] = { kind: "cousin", via: hit };
-    });
-    while (opts.length < 4) {
-      const q = pool[Math.floor(Math.random() * pool.length)];
-      const w = q[Math.random() < 0.5 ? 0 : 1];
-      if (!own.has(w) && opts.indexOf(w) < 0) opts.push(w);
-    }
-    opts.sort(function () { return Math.random() - 0.5; });
-
-    currentWord = ""; mapWord = null; input.value = ""; input.blur();
-    hideSuggest(); hideRecent();
-    if (!browseEl.hidden) closeBrowse();
-    clearStage(); hint.hidden = true;
-    lowerForFlight();
-    await Promise.race([RootMap.focus(pi, { fly: true, dur: 1000 }), delay(1600)]);
-    if (token !== runToken) return;
-    setSheet("peek");
-    const head = el("div", "node-head hunt-head");
-    head.appendChild(el("div", "node-lang", "Doublet hunt" + (hunt.streak ? " · streak " + hunt.streak : "") + (hunt.best ? " · best " + hunt.best : "")));
-    head.appendChild(el("div", "node-term hunt-word", prompt));
-    head.appendChild(el("div", "node-gloss", "Which of these came from the same source, by a different road?"));
-    entryEl.appendChild(head);
-    requestAnimationFrame(function () { entryEl.classList.add("in"); });
-    const card = el("div", "card in hunt-card");
-    const grid = el("div", "hunt-opts");
-    const out = el("div", "hunt-out");
-    opts.forEach(function (w) {
-      const b = el("button", "hunt-opt", w); b.type = "button";
-      b.addEventListener("click", function () {
-        if (grid.classList.contains("done")) return;
-        grid.classList.add("done");
-        const right = w === answer;
-        grid.querySelectorAll(".hunt-opt").forEach(function (x) { if (x.textContent === answer) x.classList.add("right"); else if (x === b) x.classList.add("wrong"); });
-        hunt.streak = right ? hunt.streak + 1 : 0;
-        if (hunt.streak > hunt.best) { hunt.best = hunt.streak; try { localStorage.setItem("rootwork.huntBest", String(hunt.best)); } catch (e) {} }
-        out.innerHTML = "";
-        const line = el("div", "hunt-verdict");
-        line.appendChild(el("b", null, right ? "Yes. " : "Not quite. "));
-        line.appendChild(el("i", null, prompt)); line.appendChild(txtNode(" and "));
-        line.appendChild(el("i", null, answer));
-        if (via >= 0) {
-          const vi = RootMap.info(via);
-          line.appendChild(txtNode(" both come from " + vi.lang + " "));
-          line.appendChild(el("i", null, vi.label));
-          line.appendChild(txtNode(", by different routes."));
-        } else line.appendChild(txtNode(" are doublets: one source, two arrivals."));
-        out.appendChild(line);
-        // what the trap was
-        const trap = !right && why[w];
-        if (trap) {
-          const t = el("div", "lin-note");
-          if (trap.kind === "cousin") {
-            const vi = RootMap.info(trap.via);
-            t.appendChild(el("i", null, w));
-            t.appendChild(txtNode(" shares the root " + vi.lang + " "));
-            t.appendChild(el("i", null, vi.label));
-            t.appendChild(txtNode(", but it's a different word built on it: a cousin, not a doublet."));
-          } else if (trap.kind === "sense") {
-            t.appendChild(el("i", null, w));
-            t.appendChild(txtNode(" means something close, but its history is its own: same sense, different lineage."));
-          } else {
-            t.appendChild(el("i", null, w));
-            t.appendChild(txtNode(" only looks related: similar spelling, unrelated source."));
-          }
-          out.appendChild(t);
-        }
-        const acts = el("div", "key-actions");
-        const next = el("button", "home-act", "Next →"); next.type = "button"; next.addEventListener("click", openHunt);
-        const o1 = el("button", "lin-part", "Open " + prompt); o1.type = "button"; o1.addEventListener("click", function () { run(prompt); });
-        const o2 = el("button", "lin-part", "Open " + answer); o2.type = "button"; o2.addEventListener("click", function () { run(answer); });
-        acts.appendChild(next); acts.appendChild(o1); acts.appendChild(o2);
-        out.appendChild(acts);
-        showFork(pi, [[answer, via >= 0 ? via : null]]);
-        holdSheetUntil = Date.now() + 1500; // keep the half sheet so the fork stays visible
-        requestAnimationFrame(function () { contentEl.scrollTo({ top: contentEl.scrollHeight, behavior: "smooth" }); });
-      });
-      grid.appendChild(b);
-    });
-    card.appendChild(grid); card.appendChild(out);
-    cardsEl.appendChild(card);
-  }
-  const huntBtn = $("huntBtn");
-  if (huntBtn && typeof huntBtn.addEventListener === "function") huntBtn.addEventListener("click", openHunt);
 
   // ---- step out: word → its family → its language group → the whole map ----
   var stepLevel = 0;
@@ -2792,30 +2608,12 @@
     return dblPairsP;
   }
   const GOLD = [0.94, 0.75, 0.3];
+  // the map shows the word's line of descent; tapping a doublet draws its fork (doubletCard)
   async function applyLens() {
     if (!window.RootMap) return;
     await RootMap.ready;
-    if (lensName === "doublets") {
-      const pairs = await loadDblPairs();
-      RootMap.setGlobal(pairs.map(function (p) { return [p[0], p[1], GOLD]; }));
-    } else RootMap.setGlobal(null);
-    if (!mapWord) return;
-    const i = mapWord[0] === "@" ? Number(mapWord.slice(1)) : RootMap.find(mapWord);
-    if (i < 0) return;
-    if (lensName === "sense" && mapWord[0] !== "@") {
-      const token = runToken;
-      const rec = await getWord(mapWord);
-      if (token !== runToken) return;
-      const syn = [];
-      ((rec && rec.s) || []).slice(0, 18).forEach(function (w) { const j = RootMap.find(w); if (j >= 0 && j !== i && syn.indexOf(j) < 0) syn.push(j); });
-      RootMap.setExtra(syn.map(function (j) { return [i, j, hexRgb(RootMap.colorOf(RootMap.info(j).fam))]; }));
-      if (syn.length && !lensQuiet) RootMap.fit([i].concat(syn));
-    } else if (lensName === "doublets") {
-      const d = await RootMap.details(i);
-      if (d.dbl && d.dbl.length) showFork(i, d.dbl, lensQuiet); else RootMap.setExtra(null);
-    } else {
-      RootMap.setExtra(null);
-    }
+    RootMap.setGlobal(null);
+    if (mapWord) RootMap.setExtra(null);
   }
   // a word's family on the map is the family of its deepest ancestor
   function familyOf(inf) {
@@ -2823,48 +2621,6 @@
     while (RootMap.info(r).parent >= 0 && n++ < 40) r = RootMap.info(r).parent;
     return RootMap.info(r).family;
   }
-  // The lens switch and the sheet's cards are one thing seen two ways: tapping
-  // a lens scrolls to its card; reading down to a card switches the lens
-  // (overlay only — the camera moves only when you ask it to).
-  let lensQuiet = false, lensTapAt = 0;
-  const LENS_CARD = { descent: ".hist-card", sense: ".sense-card", doublets: ".dbl-card" };
-  function markLens(name) {
-    lensName = name;
-    document.querySelectorAll(".lens-btn").forEach(function (x) { const on = x.dataset.lens === name; x.classList.toggle("on", on); x.setAttribute("aria-selected", on ? "true" : "false"); });
-  }
-  (typeof document.querySelectorAll === "function" ? document.querySelectorAll(".lens-btn") : []).forEach(function (b) {
-    b.addEventListener("click", function () {
-      markLens(b.dataset.lens);
-      lensTapAt = Date.now(); lensQuiet = false;
-      if (lensName !== "sense" && mapWord && window.RootMap) {
-        const i = mapWord[0] === "@" ? Number(mapWord.slice(1)) : RootMap.find(mapWord);
-        if (i >= 0) RootMap.focus(i, { fly: true });
-      }
-      applyLens();
-      const card = cardsEl.querySelector(LENS_CARD[lensName]);
-      if (card && sheetState !== "hidden" && sheetState !== "home") {
-        if (sheetState === "mini") setSheet("peek");
-        holdSheetUntil = Date.now() + 1500;
-        contentEl.scrollTo({ top: card.offsetTop - 30, behavior: "smooth" });
-      }
-    });
-  });
-  if (typeof IntersectionObserver === "function" && contentEl) {
-    const seen = new Map();
-    const io = new IntersectionObserver(function (entries) {
-      entries.forEach(function (e) { seen.set(e.target, e.isIntersecting ? e.intersectionRatio : 0); });
-      if (Date.now() - lensTapAt < 1500 || !currentWord) return;
-      let best = null, br = 0.35;
-      seen.forEach(function (r, t) { if (r > br && document.contains(t)) { br = r; best = t; } });
-      if (!best) return;
-      const name = Object.keys(LENS_CARD).find(function (k) { return best.matches(LENS_CARD[k]); });
-      if (name && name !== lensName) { markLens(name); lensQuiet = true; applyLens().then(function () { lensQuiet = false; }); }
-    }, { root: contentEl, threshold: [0, 0.35, 0.6, 0.9] });
-    new MutationObserver(function () {
-      cardsEl.querySelectorAll(".hist-card, .sense-card, .dbl-card").forEach(function (c) { if (!c._io) { c._io = 1; io.observe(c); } });
-    }).observe(cardsEl, { childList: true });
-  }
-
   // One gesture everywhere: a word inside a definition or etymology is a
   // point on the map too — tap it to go there.
   function wordAtPoint(x, y) {
@@ -2913,8 +2669,6 @@
       const act = function (label, fn) { const b = el("button", "menu-act", label); b.type = "button"; b.addEventListener("click", function () { keyEl.hidden = true; fn(); }); return b; };
       // go somewhere
       const go = el("div", "menu-acts");
-      go.appendChild(act("⤨ Somewhere else", randomStart));
-      go.appendChild(act("⑂ Doublet hunt", openHunt));
       go.appendChild(act("✦ Quiz", function () { if (typeof openQuiz === "function") openQuiz(); }));
       go.appendChild(act("❦ Read French", function () { if (window.CartaReader) CartaReader.open("fr"); }));
       go.appendChild(act("❦ Read German", function () { if (window.CartaReader) CartaReader.open("de"); }));
@@ -3800,8 +3554,6 @@
     quizEl.appendChild(msg);
   }
 
-  const homeQuizBtn = $("homeQuizBtn");
-  if (homeQuizBtn) homeQuizBtn.addEventListener("click", openQuiz);
   const savedWordsBtn = $("savedWordsBtn");
   if (savedWordsBtn) savedWordsBtn.addEventListener("click", openSavedWords);
   updateQuizBadge();

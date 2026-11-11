@@ -76,7 +76,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&amp;family=Libre+Caslon+Display&amp;family=IM+Fell+English:ital@0;1&amp;family=IM+Fell+English+SC&amp;family=Overpass:ital,wght@0,400;0,600;0,700;1,600&amp;family=Overpass+Mono:wght@400;600&amp;family=Old+Standard+TT:ital,wght@0,400;0,700;1,400&amp;family=Playfair+Display:ital,wght@0,400;0,700;1,400&amp;family=Playfair+Display+SC:wght@400;700&amp;family=Tinos:ital,wght@0,400;0,700;1,400&amp;family=Arimo:wght@400;700&amp;family=Cousine&amp;display=swap" />
   <link rel="stylesheet" href="styles.css?v=148" />
   <link rel="stylesheet" href="looks.css?v=19" />
-  <link rel="stylesheet" href="divisions.css?v=8" />
+  <link rel="stylesheet" href="divisions.css?v=9" />
 </head>
 <body>
   <div class="map" id="map" aria-label="Map of English etymology"></div>
@@ -84,11 +84,6 @@
   <div class="app">
     <div class="ns-title" id="nsTitle" aria-hidden="true">Netscape - [Carta]</div>
     <header class="topbar">
-      <div class="lens" role="tablist" aria-label="View">
-        <button class="lens-btn on" data-lens="descent" role="tab" aria-selected="true">Descent</button>
-        <button class="lens-btn" data-lens="sense" role="tab" aria-selected="false">Sense</button>
-        <button class="lens-btn" data-lens="doublets" role="tab" aria-selected="false">Doublets</button>
-      </div>
       <span class="topbar-gap"></span>
       <button id="savedWordsBtn" class="icon-toggle" type="button" aria-label="Saved words" hidden>
         <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
@@ -129,11 +124,6 @@
     <div class="callout" id="callout" hidden></div>
     <main class="content" id="content">
       <div class="hint" id="hint">
-        <button id="randomBtn" class="home-act" type="button">⤨ Somewhere else</button>
-        <button id="huntBtn" class="home-act" type="button">⑂ Doublet hunt</button>
-        <button id="homeQuizBtn" class="home-act" type="button">✦ Quiz</button>
-        <button class="home-act" type="button" onclick="window.CartaReader&&CartaReader.open('fr')">❦ Lire</button>
-        <button class="home-act" type="button" onclick="window.CartaReader&&CartaReader.open('de')">❦ Lesen</button>
         <div class="alpha" id="alpha" hidden aria-hidden="true"></div>
       </div>
 
@@ -239,7 +229,7 @@
   <script defer src="engine.js?v=61"></script>
   <script defer src="etym-parse.js?v=4"></script>
   <script defer src="graph.js?v=23"></script>
-  <script defer src="app.js?v=182"></script>
+  <script defer src="app.js?v=183"></script>
   <script defer src="divisions.js?v=8"></script>
   <script defer src="learn.js?v=7"></script>
 </body>
