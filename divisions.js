@@ -51,6 +51,7 @@
     };
     nav.append(proxy("navBack", "←", "Back"), proxy("navFwd", "→", "Forward"), proxy("navHome", "⤢", "Step out"));
     app.appendChild(nav);
+    explore.build();
     window.addEventListener("resize", () => { if (started) placeMap(); });
   }
 
@@ -79,6 +80,7 @@
     } else strip.hidden = true;
     nav.hidden = !on() || !(cur === "Explore" || swapped);
     nav.querySelector('[data-for="navHome"]').hidden = cur !== "Explore";
+    explore.show(on() && cur === "Explore");
     placeMap();
   }
 
@@ -371,6 +373,45 @@
     };
   })();
   define("Saved", savedDiv);
+
+
+  // ---- Explore: the languages along the top, the compass rose (whole chart only) opens the key ----
+  const explore = (function () {
+    let line, rose, key;
+    const LANGS = [["English", 1], ["Français", 2], ["Deutsch", 4], ["Latina", 8]];
+    let hidden = store.get("carta.langs", 0);
+    function apply() { if (RM() && RM().setHidden) RM().setHidden(hidden); line.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(!(hidden & +b.dataset.bit)))); }
+    function buildKey() {
+      key = el("section", "dv-key"); key.hidden = true; key.setAttribute("aria-label", "How to read the map");
+      key.appendChild(el("div", "sc", "How to read the map"));
+      for (const t of ["Every dot is a word or an older form of one. Each family is drawn around its deepest known ancestor.",
+        "Distance from a family’s centre is time: the ancestor in the middle, today’s words on the rim. Zoom into a family to see its era rings.",
+        "Families that share compounds or cross-links sit next to each other. The faint outer band holds entries with no recorded ancestry.",
+        "Dot size is how many words descend from that point. Colour is the language family:"]) key.appendChild(el("p", null, t));
+      const fams = el("div", "dv-fams");
+      (RM() ? RM().families() : []).forEach((f, k) => { const r = el("div", "dv-fam"), d = el("i"); d.style.background = RM().colorOf(k); r.append(d, document.createTextNode(f)); fams.appendChild(r); });
+      key.appendChild(fams);
+      key.appendChild(el("p", null, "Struck through in the line along the top: a language you’ve hidden, with the older forms only it leads back to. Nothing moves."));
+      app.appendChild(key);
+      document.addEventListener("pointerdown", (e) => { if (!key.hidden && !e.target.closest(".dv-key, .dv-rose")) key.hidden = true; });
+    }
+    function build() {
+      line = el("nav", "dv-langs"); line.setAttribute("aria-label", "Languages shown");
+      for (const [n, b] of LANGS) {
+        const x = button("dv-lang sc", n); x.dataset.bit = b;
+        x.addEventListener("click", () => { hidden ^= b; if ((hidden & 15) === 15) hidden ^= b; store.set("carta.langs", hidden); apply(); }); // never all four
+        line.appendChild(x);
+      }
+      rose = button("dv-rose", null, "How to read the map"); rose.hidden = true;
+      rose.innerHTML = '<svg width="54" height="54" viewBox="0 0 54 54" aria-hidden="true"><circle cx="27" cy="27" r="22" class="r-face"></circle><circle cx="27" cy="27" r="18" class="r-ring"></circle><path d="M27 6 L31 27 L27 48 L23 27 Z" class="r-ns"></path><path d="M6 27 L27 23 L48 27 L27 31 Z" class="r-ew"></path><text x="24.5" y="5.2" class="r-n">N</text></svg>';
+      rose.addEventListener("click", () => { if (!key) buildKey(); key.hidden = !key.hidden; });
+      app.append(line, rose);
+      // the rose shows only at the whole-chart view (checked a few times a second; no redraws)
+      setInterval(() => { const want = on() && cur === "Explore" && !swapped && RM() && RM().atOverview && RM().atOverview(); if (rose.hidden === !!want) rose.hidden = !want; if (!want && key && !key.hidden && cur !== "Explore") key.hidden = true; }, 300);
+      if (RM()) RM().ready.then(apply);
+    }
+    return { build, show(v) { if (line) line.hidden = !v; if (!v && key) key.hidden = true; } };
+  })();
 
   // ---- public -------------------------------------------------------------------------------
   function define(n, m) { mods[n] = m; if (started && n === cur) { ensureMounted(n); render(); if (m.enter) m.enter(); } }

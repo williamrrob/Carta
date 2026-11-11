@@ -102,6 +102,7 @@
   let onInteract = null;
   let labelHits = []; // [x0,y0,x1,y1,idx] of labels drawn this frame
   let trail = null;
+  let hideBits = 0;   // languages struck through on Explore's language line (1 en, 2 fr, 4 de, 8 la)
   let ctxLost = false; // iOS drops the GL context under memory pressure; it is rebuilt on restore
   let onTap = null, onDraw = null;
   const glossWant = new Set(); // chunks requested for close-range glosses
@@ -169,14 +170,15 @@
 
   // ---- GL ---------------------------------------------------------------------------
   const VS_PT = `
-    attribute vec2 p; attribute float sz; attribute vec3 c;
-    uniform vec2 ctr; uniform float s; uniform vec2 res; uniform float k; uniform float dpr;
+    attribute vec2 p; attribute float sz; attribute vec3 c; attribute vec4 m;
+    uniform vec2 ctr; uniform float s; uniform vec2 res; uniform float k; uniform float dpr; uniform vec4 show; uniform float useMask;
     varying vec3 vc;
     void main(){
       vec2 q = (p - ctr) * s;
       gl_Position = vec4(q.x / (res.x*0.5), -q.y / (res.y*0.5), 0.0, 1.0);
       gl_PointSize = sz < 0.0 ? 0.0 : clamp((1.0 + sz / 40.0) * k, 1.0, 34.0) * dpr;
       if (sz < 0.0) gl_Position = vec4(2.0, 2.0, 2.0, 1.0); // quiet layer: off-screen
+      if (useMask > 0.5 && dot(m, vec4(1.0)) > 0.0 && dot(m, show) < 0.5) gl_Position = vec4(2.0, 2.0, 2.0, 1.0); // a hidden language's line
       vc = c;
     }`;
   const FS_PT = `
@@ -192,12 +194,13 @@
       gl_FragColor = vec4(col * e * a, e * a);
     }`;
   const VS_LN = `
-    attribute vec2 p; attribute vec3 c;
-    uniform vec2 ctr; uniform float s; uniform vec2 res;
+    attribute vec2 p; attribute vec3 c; attribute vec4 m;
+    uniform vec2 ctr; uniform float s; uniform vec2 res; uniform vec4 show; uniform float useMask;
     varying vec3 vc;
     void main(){
       vec2 q = (p - ctr) * s;
       gl_Position = vec4(q.x / (res.x*0.5), -q.y / (res.y*0.5), 0.0, 1.0);
+      if (useMask > 0.5 && dot(m, vec4(1.0)) > 0.0 && dot(m, show) < 0.5) gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
       vc = c;
     }`;
   const FS_LN = `precision mediump float; varying vec3 vc; uniform float a; void main(){ gl_FragColor = vec4(vc * a, a); }`;
@@ -244,9 +247,22 @@
       j++;
     }
     B.lpos = buf(lp); B.lcol = buf(lc); B.lcount = m * 2;
+    maskBuffers();
     dirty = true;
   }
 
+  // language mask (graph/langmask.bin, fetched the first time a language is hidden): 4 bytes a point
+  // (English, French, German, Latin; 255 = on that language's line), and the same for each edge's ends
+  function maskBuffers() {
+    if (!G.mask || !gl) return;
+    const N = G.N, pm = new Uint8Array(N * 4);
+    for (let i = 0; i < N; i++) { const b = G.mask[i]; for (let t = 0; t < 4; t++) pm[i * 4 + t] = b & (1 << t) ? 255 : 0; }
+    const hid = (i) => !OPT.showQuiet && G.quiet(i);
+    const lm = new Uint8Array(B.lcount * 4); let j = 0;
+    for (let i = 0; i < N; i++) { if (G.parent[i] < 0 || hid(i)) continue; for (let v = 0; v < 2; v++) lm.set(pm.subarray(i * 4, i * 4 + 4), (j * 2 + v) * 4); j++; }
+    B.pm = buf(pm); B.lm = buf(lm);
+  }
+  const shown = (i) => !hideBits || !G.mask || !G.mask[i] || (G.mask[i] & ~hideBits & 15);
   function dotRGB(i) { return LOOK.dotColor ? LOOK.dotColor(i) : G.pal[G.meta[i * 2]]; }
   function segRGB(i) { return LOOK.lineRGB ? LOOK.lineRGB.split(",").map((v) => v / 255) : G.pal[G.meta[i * 2]]; }
   // dynamic overlay geometry (focus lineage / lens) rebuilt on change
@@ -259,6 +275,15 @@
     return { p, c, n: segs.length * 2 };
   }
 
+  // the mask attribute only for the whole-map draws; overlays (the lit line, lenses) always show
+  function useMask(P, b) {
+    const on = !!(b && hideBits);
+    if (P.u.useMask) gl.uniform1f(P.u.useMask, on ? 1 : 0);
+    if (P.a.m == null || P.a.m < 0) return;
+    if (on) { gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.enableVertexAttribArray(P.a.m); gl.vertexAttribPointer(P.a.m, 4, gl.UNSIGNED_BYTE, true, 0, 0);
+      gl.uniform4f(P.u.show, hideBits & 1 ? 0 : 1, hideBits & 2 ? 0 : 1, hideBits & 4 ? 0 : 1, hideBits & 8 ? 0 : 1); }
+    else gl.disableVertexAttribArray(P.a.m);
+  }
   function draw() {
     if (!G || !gl || ctxLost) return;
     if (viewport && H - insets.top - insets.bottom <= 0) { labelHits = []; return; } // a page covers the map: draw nothing
@@ -279,7 +304,9 @@
     gl.uniform1f(P_LN.u.a, ea);
     gl.bindBuffer(gl.ARRAY_BUFFER, B.lpos); gl.enableVertexAttribArray(P_LN.a.p); gl.vertexAttribPointer(P_LN.a.p, 2, gl.FLOAT, false, 0, 0);
     gl.bindBuffer(gl.ARRAY_BUFFER, B.lcol); gl.enableVertexAttribArray(P_LN.a.c); gl.vertexAttribPointer(P_LN.a.c, 3, gl.FLOAT, false, 0, 0);
+    useMask(P_LN, B.lm);
     gl.drawArrays(gl.LINES, 0, B.lcount);
+    useMask(P_LN, null);
     // points
     gl.useProgram(P_PT.p);
     gl.uniform2f(P_PT.u.ctr, ctr[0], ctr[1]); gl.uniform1f(P_PT.u.s, cam.s); gl.uniform2f(P_PT.u.res, W, H);
@@ -290,7 +317,9 @@
     gl.bindBuffer(gl.ARRAY_BUFFER, B.pos); gl.enableVertexAttribArray(P_PT.a.p); gl.vertexAttribPointer(P_PT.a.p, 2, gl.FLOAT, false, 0, 0);
     gl.bindBuffer(gl.ARRAY_BUFFER, B.col); gl.enableVertexAttribArray(P_PT.a.c); gl.vertexAttribPointer(P_PT.a.c, 3, gl.FLOAT, false, 0, 0);
     gl.bindBuffer(gl.ARRAY_BUFFER, B.sz); gl.enableVertexAttribArray(P_PT.a.sz); gl.vertexAttribPointer(P_PT.a.sz, 1, gl.FLOAT, false, 0, 0);
+    useMask(P_PT, B.pm);
     gl.drawArrays(gl.POINTS, 0, G.N);
+    useMask(P_PT, null);
     // lens overlay across the whole map (e.g. every doublet pair)
     if (globalGeo) {
       gl.useProgram(P_LN.p);
@@ -664,6 +693,7 @@
       if (!inWindow(x, y)) continue;
       const isLit = focus && focus.lit.has(i);
       if (!isLit && !OPT.showQuiet && G.quiet(i)) continue;
+      if (!isLit && !shown(i)) continue;
       if (focus && !OPT.otherFamilies && !isLit && G.tree && G.tree[i] !== G.tree[focus.idx]) continue;
       const isWord = G.lang[i] === 0;
       const big = isLit && i === focus.idx;
@@ -832,6 +862,7 @@
       for (let k = G.cellStart[c]; k < G.cellStart[c + 1]; k++) {
         const i = G.cellItems[k];
         if (!OPT.showQuiet && G.quiet(i) && !(focus && focus.lit.has(i))) continue;
+        if (!shown(i) && !(focus && focus.lit.has(i))) continue;
         // bigger dots are easier to hit
         const d = Math.hypot(G.xy[i * 2] - wx, G.xy[i * 2 + 1] - wy) - (G.meta[i * 2 + 1] / 400) * rad;
         if (d < bd) { bd = d; best = i; }
@@ -1171,6 +1202,12 @@
   };
   RM.xy = function (i) { return [G.xy[i * 2], G.xy[i * 2 + 1]]; };
   RM.label = function (i) { return G ? G.labels[i] : ""; };
+  // hide languages (bits: 1 English, 2 French, 4 German, 8 Latin); nothing moves
+  RM.setHidden = function (bits) {
+    hideBits = bits & 15; dirty = true;
+    if (hideBits && G && !G.mask && !G.maskP) G.maskP = RM.fetchGraph("langmask.bin").then((r) => (r.ok ? r.arrayBuffer() : null)).then((b) => { if (b) { G.mask = new Uint8Array(b); maskBuffers(); dirty = true; } }).catch(() => {});
+  };
+  RM.atOverview = function () { return !!G && !focus && cam.s <= fitScale() * 1.15; };
   RM.treeOf = function (i) { return G && i >= 0 ? G.tree[i] : -1; }; // the root of a point's tree (its family)
   RM.langName = function (i) { return G ? G.info.langs[G.lang[i]] : ""; };
   RM.size = function (i) { return G ? G.meta[i * 2 + 1] : 0; };

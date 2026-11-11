@@ -69,3 +69,31 @@ for (const lc of ["fr", "de"]) {
   for (const [k, sh] of Object.entries(shards)) { const t = JSON.stringify(sh); bytes += t.length; fs.writeFileSync(path.join(outDir, lc + "-" + k + ".json"), t); }
   console.log("forms " + lc + ":", n, "forms,", Object.keys(shards).length, "shards,", Math.round(bytes / 1024) + " KB");
 }
+
+// ---- langmask.bin: one byte per point. Bits 1 English, 2 French, 4 German, 8 Latin: set for a
+// point in that language and for every point it descends from (primary parent and cross links).
+// Explore hides a language by these bits; a point with no bit set belongs to none of the four and
+// always shows.
+{
+  const parent = new Int32Array(fs.readFileSync(path.join(G, "tree.bin")).buffer.slice(0));
+  const links = new Int32Array(fs.readFileSync(path.join(G, "links.bin")).buffer.slice(0));
+  const up = new Map();
+  for (let k = 0; k + 1 < links.length; k += 2) { const c = links[k], p = links[k + 1]; (up.get(c) || up.set(c, []).get(c)).push(p); }
+  const bit = info.langs.map((n) => (n === "English" ? 1 : n === "French" ? 2 : n === "German" ? 4 : /(^|\s)Latin$/.test(n) ? 8 : 0));
+  const mask = new Uint8Array(info.n);
+  for (let i = 0; i < info.n; i++) {
+    const b = bit[lang[i]]; if (!b) continue;
+    // walk every ancestor, stopping where this bit is already set
+    const stack = [i];
+    while (stack.length) {
+      const x = stack.pop();
+      if (mask[x] & b && x !== i) continue;
+      mask[x] |= b;
+      if (parent[x] >= 0 && !(mask[parent[x]] & b)) stack.push(parent[x]);
+      const c = up.get(x); if (c) for (const p of c) if (!(mask[p] & b)) stack.push(p);
+    }
+  }
+  fs.writeFileSync(path.join(G, "langmask.bin"), Buffer.from(mask.buffer));
+  let none = 0; for (const m of mask) if (!m) none++;
+  console.log("langmask.bin:", info.n, "points,", none, "outside the four languages' lines");
+}

@@ -769,3 +769,14 @@ button, input, select, textarea, .alpha-tab, .save-btn { font-family: inherit; }
 :root[data-look="priestley"] .co-say, :root[data-look="priestley"] .ln-co-say { color: var(--muted); font-size: 12.5px; font-style: normal; letter-spacing: .06em; margin-left: 8px; white-space: nowrap; }
 :root[data-look="priestley"] .co-say:not(.co-ipa) { text-transform: uppercase; letter-spacing: .12em; font-size: 11px; }
 :root[data-look="priestley"] .co-head { flex-wrap: wrap; row-gap: 2px; }
+/* Explore */
+:root[data-look="priestley"] .dv-langs { border-bottom: .6px solid var(--ink); }
+:root[data-look="priestley"] .dv-lang { color: var(--ink); font-family: var(--font); text-shadow: 0 0 3px #f1e8d3, 0 0 3px #f1e8d3; }
+:root[data-look="priestley"] .dv-lang[aria-pressed="false"] { text-decoration: line-through; color: var(--muted); }
+:root[data-look="priestley"] .dv-rose .r-face { fill: #f1e8d3; stroke: var(--ink); stroke-width: 1; }
+:root[data-look="priestley"] .dv-rose .r-ring { fill: none; stroke: var(--ink); stroke-width: .5; }
+:root[data-look="priestley"] .dv-rose .r-ns { fill: var(--ink); }
+:root[data-look="priestley"] .dv-rose .r-ew { fill: none; stroke: var(--ink); stroke-width: .8; }
+:root[data-look="priestley"] .dv-rose .r-n { font-size: 6px; fill: var(--ink); font-family: var(--font); }
+:root[data-look="priestley"] .dv-key { background: var(--laid), #f1e8d3; color: var(--ink); font-family: var(--font); border: 2px solid var(--ink); outline: .6px solid var(--ink); outline-offset: -6px; }
+:root[data-look="priestley"] .dv-fam i { border: .7px solid var(--ink); }
