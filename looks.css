@@ -780,3 +780,16 @@ button, input, select, textarea, .alpha-tab, .save-btn { font-family: inherit; }
 :root[data-look="priestley"] .dv-rose .r-n { font-size: 6px; fill: var(--ink); font-family: var(--font); }
 :root[data-look="priestley"] .dv-key { background: var(--laid), #f1e8d3; color: var(--ink); font-family: var(--font); border: 2px solid var(--ink); outline: .6px solid var(--ink); outline-offset: -6px; }
 :root[data-look="priestley"] .dv-fam i { border: .7px solid var(--ink); }
+/* word card (Priestley): synonyms line, examples, bookmark on any entry */
+:root[data-look="priestley"] .syn-line { margin-top: 10px; padding-top: 8px; border-top: .6px solid var(--ink); font-size: 15px; line-height: 1.6; }
+:root[data-look="priestley"] .syn-cap { font-size: 10.5px; letter-spacing: .2em; text-transform: uppercase; margin-right: 8px; }
+:root[data-look="priestley"] .syn-w { border: 0; background: none; padding: 0; font: inherit; color: var(--ink); cursor: pointer; text-decoration: underline; text-decoration-thickness: .6px; text-underline-offset: 3px; }
+:root[data-look="priestley"] .syn-from { font-size: 11px; letter-spacing: .1em; color: var(--muted); font-variant: small-caps; }
+:root[data-look="priestley"] .ex-line { margin: 6px 0; font-size: 15.5px; line-height: 1.5; font-style: italic; }
+:root[data-look="priestley"] .ex-by { font-style: normal; font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+:root[data-look="priestley"] .ex-row { padding: 6px 0 10px; border-top: .6px solid var(--ink); }
+:root[data-look="priestley"] .ex-row:first-of-type { border-top: 0; }
+:root[data-look="priestley"] .ex-acts { display: flex; align-items: center; gap: 8px; }
+:root[data-look="priestley"] .ex-star { border: 0; background: none; min-width: 44px; min-height: 44px; font-size: 17px; color: var(--ink); cursor: pointer; }
+:root[data-look="priestley"] .node-head { position: relative; }
+:root[data-look="priestley"] .node-star { position: absolute; right: 0; top: 0; }

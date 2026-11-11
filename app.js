@@ -917,6 +917,7 @@
       anchorCard = buildDefinitionCard(recP, token);
       cardsEl.appendChild(anchorCard);
       requestAnimationFrame(function () { anchorCard.classList.add("in"); });
+      synLine(recP, anchorCard, token);
     }
 
     // 3.6) Collection tag (e.g. Latin abbreviations) — tappable to see the set.
@@ -964,9 +965,10 @@
     cardsEl.appendChild(useCard);
     requestAnimationFrame(function () { useCard.classList.add("in"); });
 
-    // 6) Thesaurus — skipped under MW (synonyms already live inside each
-    // homograph card above).
-    if (!useMw) {
+    // 6) Examples: the dictionary's own example lines
+    exampleCardEn(recP, token).then(function (c) { if (c && token === runToken) { cardsEl.appendChild(c); requestAnimationFrame(function () { c.classList.add("in"); }); } });
+    // (the thesaurus card gave way to the synonyms line under the definition)
+    if (!useMw && !(window.CartaDiv && CartaDiv.on())) {
       const thesCard = buildThesaurusCard(recP, token);
       cardsEl.appendChild(thesCard);
       requestAnimationFrame(function () { thesCard.classList.add("in"); });
@@ -2336,7 +2338,7 @@
     }
     if (lensable && d && d.dbl && d.dbl.length) {
       const b = el("button", "co-act", d.dbl.length + (d.dbl.length > 1 ? " doublets" : " doublet")); b.type = "button";
-      b.addEventListener("click", function (e) { e.stopPropagation(); const lb = document.querySelector('.lens-btn[data-lens="doublets"]'); if (lb) lb.click(); });
+      b.addEventListener("click", function (e) { e.stopPropagation(); showFork(i, d.dbl); });
       acts.appendChild(b);
     }
     return acts;
@@ -3069,7 +3071,7 @@
     d.dbl.forEach(function (pair) {
       const row = el("div", "dbl-row");
       const b = el("button", "dbl-word", pair[0]); b.type = "button";
-      b.addEventListener("click", function () { run(pair[0]); });
+      b.addEventListener("click", function () { showFork(i, [pair]); setSheet("callout"); });
       row.appendChild(b);
       if (pair[1] != null) {
         const vi = RootMap.info(pair[1]);
@@ -3080,10 +3082,68 @@
       }
       card.appendChild(row);
     });
-    const show = el("button", "lin-part", "Show the fork on the map"); show.type = "button";
-    show.style.marginTop = "10px";
-    show.addEventListener("click", function () { showFork(i, d.dbl); if (sheetState === "full") setSheet("peek"); });
-    card.appendChild(show);
+    card.appendChild(el("div", "lin-note", "Tap one to see the fork on the map."));
+    return card;
+  }
+  // synonyms in one line, each with the language it came into English from (its nearest ancestor)
+  async function synLine(recP, card, token) {
+    const rec = await recP;
+    if (token !== runToken || !rec || !rec.s || !rec.s.length) return;
+    await RootMap.ready;
+    const line = el("div", "syn-line");
+    line.appendChild(el("span", "syn-cap", "Synonyms"));
+    rec.s.slice(0, 8).forEach(function (w, k) {
+      if (k) line.appendChild(txtNode(", "));
+      const b = el("button", "syn-w", w); b.type = "button";
+      b.addEventListener("click", function () { run(w); });
+      line.appendChild(b);
+      // past English's own stages (Middle, Old…), the first other language is where it was borrowed
+      // from; a native word (back to Proto-Germanic and beyond) gets no tag
+      const j = RootMap.find(w), up = j >= 0 ? RootMap.lineage(j) : [];
+      let from = null;
+      for (const k of up) { const lg = RootMap.info(k).lang || ""; if (/English$/.test(lg)) continue; if (!/^Proto-/.test(lg)) from = lg; break; }
+      if (from) line.appendChild(el("span", "syn-from", " " + from));
+    });
+    card.appendChild(line);
+  }
+  // Examples on an English card: the dictionary's example lines
+  async function exampleCardEn(recP, token) {
+    const rec = await recP;
+    if (token !== runToken || !rec || !rec.d) return null;
+    const xs = rec.d.map(function (d) { return d.x; }).filter(Boolean).slice(0, 4);
+    if (!xs.length) return null;
+    const card = el("div", "card ex-card");
+    card.appendChild(el("div", "cap", "Examples"));
+    xs.forEach(function (x) { card.appendChild(el("p", "ex-line", x)); });
+    return card;
+  }
+  // Examples on a French or German card: short excerpts that contain this exact entry (graph/ex/),
+  // easiest first; "Translate this" makes one your next Learn excerpt; ☆ keeps it in Saved
+  async function exampleCardFor(i, lang, token) {
+    const lc = lang === "French" ? "fr" : lang === "German" ? "de" : null;
+    if (!lc || !window.CartaLearn) return null;
+    let rows;
+    try { rows = (await (await RootMap.fetchGraph("ex/" + Math.floor(i / 1024) + ".json")).json())[i]; } catch (e) { return null; }
+    if (token !== runToken || !rows || !rows.length) return null;
+    const card = el("div", "card ex-card");
+    card.appendChild(el("div", "cap", "Examples"));
+    rows.forEach(function (r) {
+      const [rlc, t, a, band, k] = r;
+      const row = el("div", "ex-row");
+      const p = el("p", "ex-line"); p.lang = rlc;
+      p.appendChild(txtNode("“" + t + "”"));
+      if (a) p.appendChild(el("span", "ex-by", " " + a));
+      row.appendChild(p);
+      const acts = el("div", "ex-acts");
+      const fetchQ = function () { return fetch("reader/" + rlc + "/q/" + band + ".json?v=5").then(function (x) { return x.json(); }).then(function (b) { return b[k]; }); };
+      const tr = el("button", "lin-part", "Translate this"); tr.type = "button";
+      tr.addEventListener("click", function () { fetchQ().then(function (q) { if (q && CartaLearn.queue(rlc, q)) CartaLearn.open(rlc); else if (q) { CartaLearn.open(rlc); } }); });
+      const st = el("button", "ex-star", CartaDiv.excerpts.has({ t: t }) ? "★" : "☆"); st.type = "button"; st.setAttribute("aria-label", "Keep in Saved");
+      st.addEventListener("click", function () { fetchQ().then(function (q) { if (!q) return; const on = CartaDiv.excerpts.toggle(rlc, q); st.textContent = on ? "★" : "☆"; }); });
+      acts.appendChild(tr); acts.appendChild(st);
+      row.appendChild(acts);
+      card.appendChild(row);
+    });
     return card;
   }
   // word pages: Lineage + Doublets cards, both read off the map
@@ -3130,6 +3190,13 @@
     showNodeCallout(i, d);
     setSheet(navigating ? "peek" : "callout");
     const head = el("div", "node-head");
+    if (window.CartaDiv && CartaDiv.marks) {
+      const on0 = CartaDiv.marks.has(inf.label, inf.lang);
+      const star = el("button", "save-btn node-star" + (on0 ? " saved" : ""), on0 ? "★" : "☆"); star.type = "button";
+      star.setAttribute("aria-label", on0 ? "Remove from saved" : "Save");
+      star.addEventListener("click", function () { const on = CartaDiv.marks.toggle(inf.label, inf.lang); star.textContent = on ? "★" : "☆"; star.className = "save-btn node-star" + (on ? " saved" : ""); });
+      head.appendChild(star);
+    }
     head.appendChild(el("div", "node-lang", inf.lang));
     head.appendChild(el("div", "node-term", inf.label));
     if (d.tr) head.appendChild(el("div", "node-tr", d.tr));
@@ -3192,6 +3259,7 @@
       add(card);
     }
     add(await lineageCard(i, token, "Where it came from"));
+    add(await exampleCardFor(i, inf.lang, token));
   }
 
 
