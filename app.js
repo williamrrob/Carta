@@ -2894,7 +2894,8 @@
   // word(): "@i" for a map point, else the English headword
   window.Carta = { openNode: function (i, f) { return openNode(i, f); }, run: function (w) { return run(w); },
     word: function () { return mapWord || currentWord || ""; }, home: function () { goHome(); }, sheet: function (st) { if (st) setSheet(st); return sheetState; },
-    actsOpen: function (on) { actsOpen(on); } };
+    actsOpen: function (on) { actsOpen(on); }, quiz: function () { openQuiz(); }, savedEn: function () { return getSaved(); },
+    toggleSavedEn: function (w) { return toggleSaved(w); } };
   const keyBtn = $("mapKeyBtn"), keyEl = $("mapKey");
   if (keyBtn && keyEl && typeof keyBtn.addEventListener === "function") {
     keyBtn.addEventListener("click", function () {

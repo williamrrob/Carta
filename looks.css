@@ -710,3 +710,44 @@ button, input, select, textarea, .alpha-tab, .save-btn { font-family: inherit; }
 :root[data-look="priestley"] .dv-res-w { font-size: 20px; }
 :root[data-look="priestley"] .dv-res-l { color: var(--muted); letter-spacing: .14em; }
 :root[data-look="priestley"] .dv-res-g { font-size: 13.5px; color: var(--muted); }
+/* Learn */
+:root[data-look="priestley"] .ln-block, :root[data-look="priestley"] .dv-scroll:not(.ln-scroll) { background: var(--laid), #f1e8d3; }
+:root[data-look="priestley"] .dv-page:not(.ln-holed) .ln-scroll { background: var(--laid), #f1e8d3; }
+:root[data-look="priestley"] .ln-inlay { border-left: 20px solid #f1e8d3; border-right: 20px solid #f1e8d3; }
+:root[data-look="priestley"] .ln-inlay::before { content: ""; position: absolute; inset: 0; border: 1px solid var(--ink); pointer-events: none; }
+:root[data-look="priestley"] .app[data-div] #quiz:not([hidden]) { background: var(--laid), #f1e8d3; }
+:root[data-look="priestley"] .ln-co { background: #f1e8d3; border: 1px solid var(--ink); }
+:root[data-look="priestley"] .ln-co-w { font-family: "Libre Caslon Display", var(--font); font-weight: 400; font-size: 16px; }
+:root[data-look="priestley"] .ln-co-c { color: var(--muted); }
+:root[data-look="priestley"] .ln-full { background: #f1e8d3; border: 0; border-left: 1px solid var(--ink); border-bottom: 1px solid var(--ink); color: var(--ink); font-size: 16px; }
+:root[data-look="priestley"] .ln-know { background: #f1e8d3; border: 0; border-top: 1px solid var(--ink); border-right: 1px solid var(--ink); color: var(--ink); letter-spacing: .14em; font-family: var(--font); }
+:root[data-look="priestley"] .ln-know:active, :root[data-look="priestley"] .ln-full:active { background: var(--you); }
+:root[data-look="priestley"] .ln-you-wrap, :root[data-look="priestley"] .ln-you-done { border-top: .6px solid var(--ink); }
+:root[data-look="priestley"] .ln-you::placeholder { color: var(--muted); opacity: .8; }
+:root[data-look="priestley"] .ln-you { caret-color: var(--ink); }
+:root[data-look="priestley"] .ln-new { border-bottom: 1.5px dotted var(--red); }
+:root[data-look="priestley"] .ln-sel { background: var(--ink); color: #f1e8d3; padding: 0 3px; border-bottom-color: transparent; }
+:root[data-look="priestley"] .ln-reading { background: var(--you); }
+:root[data-look="priestley"] .ln-got { border-bottom: 2px solid var(--blue-mark); }
+:root[data-look="priestley"] .ln-miss { border-bottom: 2px solid var(--red); background: rgba(164,80,58,.14); }
+:root[data-look="priestley"] .ln-k { border-bottom: 2px solid; }
+:root[data-look="priestley"] .ln-k-got { border-color: var(--blue-mark); } :root[data-look="priestley"] .ln-k-miss { border-color: var(--red); }
+:root[data-look="priestley"] .ln-legend, :root[data-look="priestley"] .ln-src, :root[data-look="priestley"] .ln-row-sub, :root[data-look="priestley"] .ln-note, :root[data-look="priestley"] .ln-qctx { color: var(--muted); }
+:root[data-look="priestley"] .ln-src { letter-spacing: .18em; }
+:root[data-look="priestley"] .ln-result { border-top: .6px solid var(--ink); padding-top: 10px; }
+:root[data-look="priestley"] .ln-wbw .ln-miss-row b { border-bottom: 2px solid var(--red); }
+:root[data-look="priestley"] .ln-wbw .ln-got-row b { border-bottom: 2px solid var(--blue-mark); }
+:root[data-look="priestley"] .ln-wbw b { font-weight: 400; margin-right: 4px; }
+:root[data-look="priestley"] .ln-go { background: var(--ink); color: #f1e8d3; border: 1px solid var(--ink); font-family: var(--font); font-size: 11px; letter-spacing: .2em; text-transform: uppercase; }
+:root[data-look="priestley"] .ln-row { border-top: .6px solid var(--ink); }
+:root[data-look="priestley"] .ln-big, :root[data-look="priestley"] .ln-opt { background: transparent; border: 1px solid var(--ink); color: var(--ink); font-family: var(--font); }
+:root[data-look="priestley"] .ln-big > span { font-size: 11px; letter-spacing: .2em; text-transform: uppercase; }
+:root[data-look="priestley"] .ln-big > i { font-size: 12px; color: var(--muted); min-height: 14px; }
+:root[data-look="priestley"] .ln-big:active, :root[data-look="priestley"] .ln-opt:active { background: var(--you); }
+:root[data-look="priestley"] .ln-qw { font-family: "Libre Caslon Display", var(--font); }
+:root[data-look="priestley"] .ln-qctx b { font-style: normal; color: var(--ink); font-weight: 400; border-bottom: 1.5px solid var(--ink); }
+:root[data-look="priestley"] .ln-right { background: rgba(61,95,134,.18); border-color: var(--blue-mark); }
+:root[data-look="priestley"] .ln-wrong { background: rgba(164,80,58,.16); border-color: var(--red); }
+:root[data-look="priestley"] .ln-strip-ex b { background: var(--ink); color: #f1e8d3; padding: 0 3px; font-weight: 400; }
+:root[data-look="priestley"] .ln-strip-you { border-top: .6px solid var(--ink); font-size: 14px; }
+:root[data-look="priestley"] .ln-listen, :root[data-look="priestley"] .ln-close, :root[data-look="priestley"] .ln-skip { color: var(--ink); font-family: var(--font); }

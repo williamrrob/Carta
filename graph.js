@@ -1073,8 +1073,11 @@
   RM.setInsets = function (o) { Object.assign(appInsets, o); if (!viewport) { Object.assign(insets, appInsets); dirty = true; } };
   // a division's window onto the map: frame, letter and hit-test only within [top, H - bottom]
   RM.setViewport = function (v) {
-    viewport = v ? { top: v.top || 0, bottom: v.bottom || 0 } : null;
-    Object.assign(insets, viewport || appInsets);
+    viewport = v ? { top: v.top || 0, bottom: v.bottom || 0, left: v.left || 0, right: v.right || 0 } : null;
+    Object.assign(insets, viewport ? { top: viewport.top, bottom: viewport.bottom } : appInsets);
+    // clip every layer (ground, dots, names) to the window: a compositor clip, nothing redrawn
+    const host = glc && glc.parentElement;
+    if (host) host.style.clipPath = viewport ? `inset(${viewport.top}px ${viewport.right}px ${viewport.bottom}px ${viewport.left}px)` : "";
     dirty = true;
   };
   // what one division sees: camera, the lit word, its extras, search marks, the walk
@@ -1134,8 +1137,8 @@
     if (!G || !idxs.length) return;
     let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
     for (const i of idxs) { const x = G.xy[i * 2], y = G.xy[i * 2 + 1]; x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
-    const availH = H - insets.top - insets.bottom;
-    const s = Math.max(0.08, Math.min(28, Math.min(W / Math.max(8, x1 - x0), availH / Math.max(8, y1 - y0)) * 0.78));
+    const availH = H - insets.top - insets.bottom, availW = W - (viewport ? viewport.left + viewport.right : 0);
+    const s = Math.max(0.08, Math.min(28, Math.min(availW / Math.max(8, x1 - x0), availH / Math.max(8, y1 - y0)) * 0.78));
     flyTo((x0 + x1) / 2, (y0 + y1) / 2, s, dur);
   };
   // step-out framing: a node's family (radial tree around its deepest
@@ -1168,6 +1171,7 @@
   };
   RM.xy = function (i) { return [G.xy[i * 2], G.xy[i * 2 + 1]]; };
   RM.label = function (i) { return G ? G.labels[i] : ""; };
+  RM.treeOf = function (i) { return G && i >= 0 ? G.tree[i] : -1; }; // the root of a point's tree (its family)
   RM.langName = function (i) { return G ? G.info.langs[G.lang[i]] : ""; };
   RM.size = function (i) { return G ? G.meta[i * 2 + 1] : 0; };
   RM.fetchGraph = function (p) { return fetch("graph/" + p + "?v=" + V); }; // files beside the map's, cached with its build

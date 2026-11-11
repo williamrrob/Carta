@@ -35,6 +35,7 @@
     for (const n of NAMES.slice(1)) {
       const p = el("section", "dv-page"); p.dataset.div = n; p.hidden = true; p.setAttribute("aria-label", n);
       app.appendChild(p); pages[n] = p;
+      p.addEventListener("transitionend", (e) => { if (e.target === p) placeMap(); }); // a window measured mid-slide is re-measured once the page settles
     }
     strip = button("dv-strip", null, "Back to the page"); strip.hidden = true;
     strip.addEventListener("click", () => swap(false));
@@ -59,7 +60,7 @@
     app.style.setProperty("--dv-floor", floor() + "px");
     if (!on() || cur === "Explore" || swapped) { rm.setViewport(null); if (window.Carta) Carta.sheet(Carta.sheet()); return; }
     const w = mods[cur] && mods[cur].window ? mods[cur].window() : null;   // a window in the page (Learn's inlay)
-    rm.setViewport(w ? { top: w.top, bottom: H() - w.bottom } : { top: H(), bottom: 0 });
+    rm.setViewport(w ? { top: w.top, bottom: H() - w.bottom, left: w.left || 0, right: w.right != null ? (app.getBoundingClientRect().width - w.right) : 0 } : { top: H(), bottom: 0 });
   }
   // the strip and the nav row sit under the map's working area while swapped
   function floor() { return swapped && strip && !strip.hidden ? strip.offsetHeight + 86 : 0; }
