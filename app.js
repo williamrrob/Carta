@@ -3088,7 +3088,7 @@
   // synonyms in one line, each with the language it came into English from (its nearest ancestor)
   async function synLine(recP, card, token) {
     const rec = await recP;
-    if (token !== runToken || !rec || !rec.s || !rec.s.length) return;
+    if (token !== runToken || !rec || !rec.s || !rec.s.length || !window.RootMap) return;
     await RootMap.ready;
     const line = el("div", "syn-line");
     line.appendChild(el("span", "syn-cap", "Synonyms"));
