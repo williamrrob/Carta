@@ -2367,6 +2367,9 @@
     head.appendChild(cw);
     const p0 = rec && rec.d && rec.d[0];
     if (p0 && p0.p) head.appendChild(el("span", "co-pos", p0.p));
+    // how it sounds, in plain letters, small beside the word
+    const say = (rec && rec.rs) || (rec && rec.i ? respellFromIPA(rec.i) : "");
+    if (say) head.appendChild(el("span", "co-say", say));
     const def = p0 ? el("div", "co-def", p0.g) : null;
     openCallout(i, [coords, head, def, calloutChain(i), calloutActs(i, d, true)]);
     fitLine(cw, 30, 20);
@@ -2378,6 +2381,8 @@
     const lang = el("div", "co-lang", inf.lang);
     const head = el("div", "co-head");
     head.appendChild(el("span", "co-word anc", inf.label));
+    // other languages: the dictionary's IPA until each language's respelling table is agreed
+    if (d.ipa) head.appendChild(el("span", "co-say co-ipa", d.ipa.replace(/^\/|\/$/g, "")));
     const def = d.g ? el("div", "co-def", "“" + d.g + "”") : null;
     const en = d.ne ? el("div", "co-rs", d.ne + " English word" + (d.ne === 1 ? "" : "s") + " come from this form") : null;
     openCallout(i, [lang, head, def, en, calloutChain(i), calloutActs(i, d, false)]);

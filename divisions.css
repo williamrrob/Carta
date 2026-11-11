@@ -45,7 +45,7 @@
 .app[data-div="Saved"]:not([data-swap="1"]) :is(.content, .callout, .leader, .trace-cap, .wander-note, .minihead),
 .app[data-div]:not([data-div="Explore"]) .topbar { visibility: hidden; }
 /* swapped: the callout and the sheet keep clear of the strip */
-.app[data-swap="1"] .callout { bottom: calc(10px + var(--dv-floor, 0px)) !important; }
+.app[data-div] .callout { bottom: calc(10px + var(--dv-floor, 0px)) !important; }
 
 /* Search */
 .dv-q { display: flex; padding: 6px 0; }

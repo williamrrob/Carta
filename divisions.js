@@ -63,7 +63,8 @@
     rm.setViewport(w ? { top: w.top, bottom: H() - w.bottom, left: w.left || 0, right: w.right != null ? (app.getBoundingClientRect().width - w.right) : 0 } : { top: H(), bottom: 0 });
   }
   // the strip and the nav row sit under the map's working area while swapped
-  function floor() { return swapped && strip && !strip.hidden ? strip.offsetHeight + 86 : 0; }
+  // Explore keeps its nav row clear; a swap also keeps the strip clear
+  function floor() { if (!on()) return 0; if (swapped && strip && !strip.hidden) return strip.offsetHeight + 86; return cur === "Explore" ? 76 : 0; }
 
   function render() {
     app.dataset.div = on() ? cur : "";

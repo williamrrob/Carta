@@ -765,3 +765,7 @@ button, input, select, textarea, .alpha-tab, .save-btn { font-family: inherit; }
 :root[data-look="priestley"] .sv-hand { font-style: normal; font-size: 17px; }
 :root[data-look="priestley"] .sv-btn { background: transparent; border: 1px solid var(--ink); color: var(--ink); font-family: var(--font); font-size: 11px; letter-spacing: .2em; text-transform: uppercase; }
 :root[data-look="priestley"] .sv-btn:active, :root[data-look="priestley"] .sv-w:active, :root[data-look="priestley"] .sv-ex:active { background: var(--you); }
+/* pronunciation, small and grey beside the word (callout, Learn's window) */
+:root[data-look="priestley"] .co-say, :root[data-look="priestley"] .ln-co-say { color: var(--muted); font-size: 12.5px; font-style: normal; letter-spacing: .06em; margin-left: 8px; white-space: nowrap; }
+:root[data-look="priestley"] .co-say:not(.co-ipa) { text-transform: uppercase; letter-spacing: .12em; font-size: 11px; }
+:root[data-look="priestley"] .co-head { flex-wrap: wrap; row-gap: 2px; }

@@ -334,7 +334,7 @@
   function openInlay(L, i, w) {
     const fig = page.querySelector(".ln-inlay"); if (!fig) return;
     const co = fig.querySelector(".ln-co"); co.innerHTML = "";
-    co.appendChild(el("b", "ln-co-w", L ? L[0] : w.textContent));
+    const cw = el("span", "ln-co-top"); cw.appendChild(el("b", "ln-co-w", L ? L[0] : w.textContent)); co.appendChild(cw);
     co.appendChild(el("span", "ln-co-g", L ? L[1] || "—" : i === -2 ? "A name." : "Not in the dictionary yet."));
     if (L && L[4]) co.appendChild(el("i", "ln-co-c", (L[5] ? "≈ English " : "cousin of English ") + L[4]));
     const ai = w.dataset.alt != null ? +w.dataset.alt : -1, A = ai >= 0 ? D[lc].lex[ai] : null;
@@ -347,6 +347,7 @@
     const wr = w.getBoundingClientRect(), sr = scroll.getBoundingClientRect();
     if (wr.top < sr.top + 8 || fig.getBoundingClientRect().bottom > sr.bottom) scroll.scrollTop += Math.min(fig.getBoundingClientRect().bottom - sr.bottom + 12, wr.top - sr.top - 60);
     tapped.n = n;
+    if (n >= 0) RM().details(n).then((d) => { if (d && d.ipa && co.isConnected && tapped && tapped.n === n) cw.appendChild(el("span", "ln-co-say", d.ipa.replace(/^\/|\/$/g, ""))); });
     window.CartaDiv.placeMap();
     if (n >= 0) {
       const rm = RM();
