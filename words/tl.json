@@ -14,5 +14,9 @@
 "Tlamacazapa Nahuatl":{"d":[{"p":"n.","g":"The variety of Nahuatl spoken in Tlamacazapa, Guerrero, Mexico."}],"e":"Calque of Spanish náhuatl de Tlamacazapa"},
 "Tlaxiaco":{"d":[{"p":"n.","g":"A city in Oaxaca, Mexico."},{"p":"n.","g":"A municipality of Oaxaca, Mexico."},{"p":"n.","g":"A district of Oaxaca, Mexico."}],"e":"Borrowed from Spanish Tlaxiaco, from a Nahuan language, e.g. Classical Nahuatl Tlachquiyauhco, from tlachtli (“ballcourt”) + quiyahuitl (“rain”) + -co (locative suffix)."},
 "Tlemcen":{"d":[{"p":"n.","g":"A city in Algeria."},{"p":"n.","g":"A province of Algeria."}],"e":"Borrowed from Arabic تِلِمْسَان (tilimsān).","i":"/ˈtlɛmsɛn/"},
-"Tlazolteotl":{"d":[{"p":"n.","g":"An Aztec goddess of vice, filth etc. and of steam baths and purification.","dom":"mysticism"}]}
+"Tlazolteotl":{"d":[{"p":"n.","g":"An Aztec goddess of vice, filth etc. and of steam baths and purification.","dom":"mysticism"}]},
+"tlatoani":{"d":[{"p":"n.","g":"An emperor of the Aztec kingdom."}],"e":"From Classical Nahuatl tlatoani (“ruler”)."},
+"tlalocite":{"d":[{"p":"n.","g":"An orthorhombic mineral containing chlorine, copper, hydrogen, oxygen, tellurium, and zinc.","dom":"chemistry"}],"e":"From Tlaloc, Mexica god of rain, + -ite, due to its high water content."},
+"tlapallite":{"d":[{"p":"n.","g":"A monoclinic mineral containing calcium, copper, hydrogen, lead, oxygen, sulfur, and tellurium.","dom":"chemistry"}],"e":"? + -ite"},
+"tlacoyo":{"d":[{"p":"n.","g":"A Mexican dish consisting of a fried and stuffed masa cake.","x":"When it opened in 2018, Suerte was one of the few restaurants in the country making masa from heirloom varieties of corn and using it to make tortillas, tlacoyos, tlayudas, tamales and taquitos."}],"e":"From Mexican Spanish tlacoyo, from Nahuatl tlahtlaōyoh."}
 }

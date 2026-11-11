@@ -79,5 +79,10 @@
 "if it ain't snowing, I ain't going":{"d":[{"p":"phrase","g":"An expression, used primarily by nonwhite people, to indicate a romantic or sexual preference for white people, often implying a rejection of people of other racial backgrounds."}]},
 "if there's grass on the wicket, let's play cricket":{"d":[{"p":"phrase","g":"Once someone has grown pubic hair or started puberty, they are old enough for sexual intercourse."}],"rel":{"t":"synonym of","l":"if there's grass on the pitch, play ball","by":"assistant","at":"2026-06-29T16:23:04.459Z"},"ss":{"if there's grass on the pitch":"Synonym of if there's grass on the pitch, play ball.","play ball":"Synonym of if there's grass on the pitch, play ball."},"_at":"2026-10-21T15:41:56.683Z"},
 "if you can't beat them, eat them":{"d":[{"p":"phrase","g":"If one cannot control or eradicate invasive species or unwanted populations, one should consume them as a method of elimination, such as green crabs or blue catfish."}]},
-"Ifrane":{"d":[{"p":"n.","g":"A city in Fez-Meknez, Morocco."}],"e":"Borrowed from French Ifrane. Ultimately from Berber."}
+"Ifrane":{"d":[{"p":"n.","g":"A city in Fez-Meknez, Morocco."}],"e":"Borrowed from French Ifrane. Ultimately from Berber."},
+"iffiness":{"d":[{"p":"n.","g":"The state or quality of being iffy."}],"e":"From iffy + -ness."},
+"ifosfamide":{"d":[{"p":"n.","g":"A particular drug used in chemotherapy.","dom":"medicine"}],"e":"From i(so)- + -fosfamide (“alkylating agent”)."},
+"ifoxetine":{"d":[{"p":"n.","g":"A selective serotonin reuptake inhibitor.","dom":"medicine"}],"e":"From [Term?] + -oxetine (“fluoxetine derivative”)."},
+"if'n":{"d":[{"p":"conj.","g":"If.","x":"Well, it ain't no use to sit and wonder why, babe / If'n you don't know by now"}],"e":"From if + and (when)."},
+"ifpology":{"d":[{"p":"n.","g":"A non-apology of the form \"I'm sorry if you were upset\" or \"I'm sorry if you took it that way\".","x":"For quotations using this term, see Citations:ifpology."}],"e":"Blend of if + apology."}
 }

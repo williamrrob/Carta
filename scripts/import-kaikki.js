@@ -23,6 +23,9 @@
  *
  *   node scripts/import-kaikki.js <file.jsonl> [--groups slang,idioms,rare,loan]
  *        [--max-senses 4] [--limit N] [--apply]
+ *   node scripts/import-kaikki.js <file.jsonl> --words <list.txt> [--apply]
+ *        exactly the words listed (one per line), whatever their register; new headwords only
+ *        (used Nov 2026 to give the map's English points with an etymology an entry page)
  *
  * DRY RUN by default: prints per-group counts and sample entries, writes nothing.
  * Reads existing headwords from rootwork.sqlite (run `npm run build:sqlite`).
@@ -45,7 +48,8 @@ const GROUPS = new Set((arg("--groups", "slang,idioms,rare,loan")).split(",").ma
 const TOPICS = new Set((arg("--topics", "")).split(",").map((s) => s.trim().toLowerCase()).filter(Boolean));
 const MAX_SENSES = parseInt(arg("--max-senses", "4"), 10);
 const LIMIT = parseInt(arg("--limit", "0"), 10) || 0;
-const GATE = !process.argv.includes("--no-gate"); // quality-gate idiom/archaic-only words
+const WORDLIST = arg("--words", null) ? new Set(fs.readFileSync(arg("--words"), "utf8").split("\n").filter(Boolean)) : null;
+const GATE = !WORDLIST && !process.argv.includes("--no-gate"); // quality-gate idiom/archaic-only words
 const MAX_SYN = 8, MAX_REL = 12;
 
 if (!SRC || SRC.startsWith("--") || !fs.existsSync(SRC)) {
@@ -56,7 +60,7 @@ if (!SRC || SRC.startsWith("--") || !fs.existsSync(SRC)) {
 // Existing headwords + their senses. We never overwrite an existing entry, but
 // we DO add genuinely-new senses to it (e.g. the internet sense of an existing
 // word) — guarded against duplicating senses it already has.
-const SENSES_EXISTING = !process.argv.includes("--no-existing-senses");
+const SENSES_EXISTING = !process.argv.includes("--no-existing-senses") && !process.argv.includes("--words");
 const MAX_TOTAL_SENSES = parseInt(arg("--max-total-senses", "8"), 10);
 const normGloss = (g) => String(g == null ? EMPTY : g).toLowerCase().replace(/[^a-z ]/g, " ").replace(/\s+/g, " ").trim();
 
@@ -131,7 +135,12 @@ function build(word, lines) {
     const et = (o.etymology_text || EMPTY);
     if (et && LOAN_RE.test(lc(et))) wgroups.add("loan");
     if (catText(o.categories).includes("borrowed from")) wgroups.add("loan");
-    if (!ety && et) ety = et.replace(/\s+/g, " ").trim().slice(0, 400);
+    if (!ety && et) {
+      // drop the "Etymology tree" diagram that precedes the prose (it ends with the "English <word>" line)
+      let t = et;
+      if (t.startsWith("Etymology tree")) { const tag = "\nEnglish " + word + "\n"; const k = t.indexOf(tag); t = k >= 0 ? t.slice(k + tag.length) : t.replace(/^Etymology tree[\s\S]*?\n\n/, ""); }
+      ety = t.replace(/\s+/g, " ").trim().slice(0, 400);
+    }
     if (!ipa) for (const s of (o.sounds || [])) if (s.ipa) { ipa = s.ipa; break; }
     for (const s of (o.synonyms || [])) if (s.word) syn.push(s.word);
     for (const s of (o.antonyms || [])) if (s.word) ant.push(s.word);
@@ -160,7 +169,8 @@ function build(word, lines) {
   if (!senses.length) return null;
 
   // keep matching-group senses first, cap, strip helper field
-  const matched = [...wgroups].filter((g) => GROUPS.has(g));
+  if (WORDLIST) wgroups.add("listed");
+  const matched = [...wgroups].filter((g) => GROUPS.has(g) || g === "listed");
   const matchedTopics = [...wtopics];
   if (!matched.length && !matchedTopics.length) return null;
   // Quality-gate words that qualify ONLY via the bloat-heavy groups (idioms /
@@ -171,7 +181,7 @@ function build(word, lines) {
     const rich = senses.some((s) => s.x) || !!ety || senses.length >= 2;
     if (!rich) return null;
   }
-  const swant = (s) => ([...s._g].some((g) => GROUPS.has(g)) || senseTopicMatch(s) ? 1 : 0);
+  const swant = WORDLIST ? () => 0 : (s) => ([...s._g].some((g) => GROUPS.has(g)) || senseTopicMatch(s) ? 1 : 0);
   senses.sort((a, b) => swant(b) - swant(a));
   const d = senses.slice(0, MAX_SENSES).map((s) => { const o = { p: s.p, g: s.g }; if (s.x) o.x = s.x; if (s.dom) o.dom = s.dom; return o; });
 
@@ -204,6 +214,7 @@ async function main() {
     const wl = curWord.toLowerCase();
     const key = shardKey(curWord);
     if (!key) { counts.unshardable++; return; }
+    if (WORDLIST && !WORDLIST.has(curWord)) return;
     const built = build(curWord, buf);
     if (!built) return; // matched no requested group (or quality-gated out)
 
@@ -233,7 +244,7 @@ async function main() {
 
     // brand-new headword
     counts.kept++;
-    for (const g of built.groups) if (GROUPS.has(g)) byGroup[g] = (byGroup[g] || 0) + 1;
+    for (const g of built.groups) if (GROUPS.has(g) || g === "listed") byGroup[g] = (byGroup[g] || 0) + 1;
     for (const t of built.topics) byTopic[t] = (byTopic[t] || 0) + 1;
     const tag = [...[...built.groups].filter((g) => GROUPS.has(g)), ...built.topics];
     if (samples.length < 30) samples.push([curWord, tag, built.entry]);

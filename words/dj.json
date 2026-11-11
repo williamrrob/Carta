@@ -17,5 +17,10 @@
 "Djerejian":{"d":[{"p":"n.","g":"A surname from Armenian."}],"e":"Borrowed from Armenian Ճերեճյան (Čerečyan)."},
 "Django":{"d":[{"p":"n.","g":"A male given name","x":"Django Wexler is an American fantasy author."}],"e":"Reported to be the first person singular of a Romani verb meaning \"to awake\". Could also be a Wallonian version or diminutive of French Jean."},
 "Djibril":{"d":[{"p":"n.","g":"A male given name from Arabic.","x":"Senegalese star Djibril Soumaré has inked a season-long loan after United agreed to secure his services from Portuguese Primeira Liga side Braga. The deal includes an obligation to buy upon certain criteria being met."},{"p":"n.","g":"A surname from Arabic."}],"e":"Borrowed from Arabic جِبْرِيل (jibrīl)."},
-"djellaba":{"d":[{"p":"n.","g":"A loose-fitting, ankle-length hooded robe worn by men in North Africa.","x":"Dignified gentlemen in sober djellabas, of excellent cut and material, their wives in equally sober djellabas, sat in the tea shops with their children and servants, sipping mint tea."}],"vars":["jellaba"],"e":"From French djellaba, from Algerian Arabic جلابة (jallāba)."}
+"djellaba":{"d":[{"p":"n.","g":"A loose-fitting, ankle-length hooded robe worn by men in North Africa.","x":"Dignified gentlemen in sober djellabas, of excellent cut and material, their wives in equally sober djellabas, sat in the tea shops with their children and servants, sipping mint tea."}],"vars":["jellaba"],"e":"From French djellaba, from Algerian Arabic جلابة (jallāba)."},
+"djurleite":{"d":[{"p":"n.","g":"A copper sulfide mineral with the chemical formula Cu₃₁S₁₆.","dom":"chemistry"}],"e":"From Swedish Djurle + -ite, after Seved Djurle (1928-2000), Swedish chemist."},
+"djerfisherite":{"d":[{"p":"n.","g":"An isometric-hexoctahedral mineral containing chlorine, copper, iron, nickel, potassium, sodium, and sulfur.","dom":"chemistry"}],"e":"? + -ite"},
+"djoundi":{"d":[{"p":"n.","g":"An Algerian Muslim soldier fighting for independence during the Algerian War.","x":"Enlistment of the first F.L.N. djounoud, however, proceeded slowly […]"}],"e":"From Algerian Arabic جُندِي (jundī)."},
+"djenkolism":{"d":[{"p":"n.","g":"Djenkol bean poisoning."}],"e":"From djenkol + -ism."},
+"djenkolic":{"d":[{"p":"n.","g":"Of or pertaining to a djenkol."}],"e":"From djenkol + -ic."}
 }

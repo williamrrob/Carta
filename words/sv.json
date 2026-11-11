@@ -26,5 +26,18 @@
 "Svatoňovice":{"d":[{"p":"n.","g":"A village and municipality in Opava District in the Moravia–Silesia Region of the Czech Republic."}],"e":"Borrowed from Czech Svatoňovice.","i":"/ˈsvatɒnjɒvˌɪtseɪ/"},
 "Svay Pak":{"d":[{"p":"n.","g":"A commune on the outskirts of Phnom Penh, Cambodia."}],"e":"From Khmer ស្វាយប៉ាក (svaaypaak)."},
 "Svahn":{"d":[{"p":"n.","g":"A surname from Swedish.","x":"John Svahn, b. 1943"}],"e":"Borrowed from Swedish Svahn."},
-"Svartálfaheimr":{"d":[{"p":"n.","g":"the realm of the Svartálfar gods, also known as the Myrkálfar","dom":"mysticism"}]}
+"Svartálfaheimr":{"d":[{"p":"n.","g":"the realm of the Svartálfar gods, also known as the Myrkálfar","dom":"mysticism"}]},
+"svarita":{"d":[{"p":"n.","g":"Falling accent, which usually follows the acute udātta, in Vedic Sanskrit."}],"e":"From Sanskrit स्वरित (svarita, “sounded, accentuated”)."},
+"sveltely":{"d":[{"p":"adv.","g":"In a svelte way."}],"e":"From svelte + -ly."},
+"svelteness":{"d":[{"p":"n.","g":"The state or condition of being svelte; slim litheness."}],"e":"From svelte + -ness."},
+"svanbergite":{"d":[{"p":"n.","g":"A rhombohedral mineral with the chemical formula SrAl₃(PO₄)(SO₄)(OH)₆.","dom":"chemistry"}],"e":"From Swedish Svanberg + -ite, named after Swedish chemist Lars Fredrik Svanberg (1805–1878)."},
+"svyazhinite":{"d":[{"p":"n.","g":"A triclinic mineral containing aluminum, fluorine, hydrogen, magnesium, oxygen, and sulfur.","dom":"chemistry"}],"e":"? + -ite"},
+"sveite":{"d":[{"p":"n.","g":"A monoclinic white mineral containing aluminum, chlorine, hydrogen, nitrogen, oxygen, and potassium.","dom":"chemistry"}],"e":"? + -ite"},
+"svyatoslavite":{"d":[{"p":"n.","g":"A monoclinic-sphenoidal colorless mineral containing aluminum, calcium, oxygen, and silicon.","dom":"chemistry"}],"e":"Святослав + -ite"},
+"sverigeite":{"d":[{"p":"n.","g":"An orthorhombic-dipyramidal yellow mineral containing beryllium, hydrogen, magnesium, manganese, oxygen, silicon, sodium, and tin.","dom":"chemistry"}],"e":"? + -ite"},
+"svabite":{"d":[{"p":"n.","g":"A hexagonal-dipyramidal mineral containing arsenic, calcium, fluorine, and oxygen.","dom":"chemistry"}],"e":"? + -ite"},
+"svirel":{"d":[{"p":"n.","g":"An old folk Russian wind instrument of the end-blown flute type.","dom":"entertainment"}],"e":"From Russian свире́ль (svirélʹ)."},
+"svarabhaktic":{"d":[{"p":"adj.","g":"Of or relating to svarabhakti.","x":"Not previously mentioned is the svarabhaktic glide which in a few instances was present between r and another consonant."}],"e":"From svarabhakti + -ic.","i":"/ˌsvʌɹəˈbɑːktɪk/"},
+"sviatonossite":{"d":[{"p":"n.","g":"An andradite-syenite mineral.","dom":"chemistry"}],"e":"From Svyatoi Nos + -ite."},
+"svetlozarite":{"d":[{"p":"n.","g":"A zeolite containing calcium, potassium, sodium, aluminium, silicon, hydrogen and oxygen.","dom":"chemistry"}],"e":"Named after Bulgarian petrographer Svetlozar Botev (1940–1971), + -ite."}
 }

@@ -13,5 +13,14 @@
 "CT scan":{"d":[{"p":"n.","g":"A computed tomography scan.","x":"E.M.T.s arrived soon after and transported her to MarinHealth Medical Center, where a CT scan showed bleeding between the skull and the brain.","dom":"medicine"}],"r":["computed tomography"],"_at":"2026-07-01T01:35:47.312Z"},
 "ctenanthe":{"d":[{"p":"n.","g":"Any flowering plant of the genus Ctenanthe, family Marantaceae, native to Central and South America; commonly cultivated as an indoor plant."}],"e":"Borrowed from the taxonomic name Ctenanthe, from Ancient Greek κτεν- (kten-), the stem of Ancient Greek κτείς (kteís, “comb”) + New Latin -anthe, representing Ancient Greek ἄνθος (ánthos, “flower”).","i":"/tɛnˈænθiː/"},
 "ctenopoma":{"d":[{"p":"n.","g":"Any of the genus Ctenopoma of climbing gouramies, native to Africa, including certain members of the genus Microctenopoma, which was part of Ctenopoma in the past.","x":"Ornate ctenopoma (Ctenopoma ansorgii)"}],"e":"Borrowed from taxonomic name Ctenopoma, from cteno- + Ancient Greek πῶμα (pôma, “lid”).","wp":[{"t":"cteno-"},{"t":"grc:πῶμα","g":"lid"}],"_at":"2026-10-21T15:41:34.640Z"},
-"Ctimene":{"d":[{"p":"n.","g":"The younger sister of Odysseus, the legendary king of Ithaca.","dom":"mysticism"}],"e":"From Ancient Greek Κτιμένη (Ktiménē)."}
+"Ctimene":{"d":[{"p":"n.","g":"The younger sister of Odysseus, the legendary king of Ithaca.","dom":"mysticism"}],"e":"From Ancient Greek Κτιμένη (Ktiménē)."},
+"cteniform":{"d":[{"p":"adj.","g":"Comb-shaped."}],"e":"From Ancient Greek κτείς (kteís, “comb”) + -form."},
+"ctenoidean":{"d":[{"p":"adj.","g":"Relating to the former group of fish Ctenoidei; ray-finned."},{"p":"n.","g":"Any member of the former group Ctenoidei; a ray-finned fish."}],"e":"From taxonomic name Ctenoidei + -an."},
+"ctenocyst":{"d":[{"p":"n.","g":"A sensory organ of the ctenophores (comb jellies). It is a black speck in the depression on the aboral side of the body.","dom":"biology"}],"e":"From cteno- + cyst, in which the first component can be understood as a clipping of ctenophore or of the taxonomic name Ctenophora."},
+"ctenid":{"d":[{"p":"n.","g":"Any spider in the family Ctenidae.","dom":"biology"}],"e":"From translingual Ctenidae.","i":"/ˈtɛnɪd/"},
+"ctenoplectrid":{"d":[{"p":"n.","g":"Any bee of the tribe Ctenoplectrini (especially when the latter is, as formerly by some, regarded as the family Ctenoplectridae).","x":"Larval characters should be reanalyzed in light of recent information presented by Michener and Greenberg (1980) that indicates ctenoplectrids are the sister group of the long-tongued bee families (Figure 2).","dom":"biology"}],"e":"From translingual Ctenoplectridae."},
+"ctenophoric":{"d":[{"p":"adj.","g":"Of or relating to the ctenophores."}],"e":"From ctenophore + -ic."},
+"ctenophorous":{"d":[{"p":"adj.","g":"Of or relating to the ctenophores."}],"e":"From ctenophore + -ous."},
+"ctenodont":{"d":[{"p":"adj.","g":"Having hinges with many teeth transverse to the margin."}],"e":"From cteno- + -odont."},
+"ctetology":{"d":[{"p":"n.","g":"The study of the origin of acquired characteristics."}],"e":"From Ancient Greek κτητός (ktētós, “acquired”) + -logy."}
 }

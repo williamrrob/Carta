@@ -9,5 +9,8 @@
 "TVaholic":{"d":[{"p":"n.","g":"One who is addicted to watching television.","x":"I spent so much time at home. I found myself becoming a TVaholic. I loved reruns and old movies. I fantasized a lot about being rich, beautiful, and of course, married."}],"e":"From TV + -aholic.","b":[{"s":"TV","k":"prefix"},{"s":"aholic","k":"root"}],"wp":[{"t":"TV"},{"t":"-aholic"}],"_at":"2026-10-21T15:41:29.381Z"},
 "TV timeout":{"d":[{"p":"n.","g":"A time-out taking place during a televised sports match where the game clock is stopped for a period of time to allow for TV commercials to air before the resumption of play. The delay is usually after a whistle or other stoppage of play occurs, and not an interference with gameplay in and of itself.","dom":"broadcasting"}],"e":"From TV + timeout.","wp":[{"t":"TV"},{"t":"timeout"}],"_at":"2026-10-21T15:41:29.381Z"},
 "Tvedt":{"d":[{"p":"n.","g":"A surname from Norwegian."}],"e":"Borrowed from Norwegian Tvedt, from Danicized tveit, from Old Norse þveit. Doublet of thwaite.","i":"/tvɛdt/","rs":"tvehdt"},
-"Tvashtr":{"d":[{"p":"n.","g":"the craftsman of the devas and the father of Vritra","dom":"religion"}],"e":"Borrowed from Sanskrit त्वष्टृ (tvaṣṭṛ)."}
+"Tvashtr":{"d":[{"p":"n.","g":"the craftsman of the devas and the father of Vritra","dom":"religion"}],"e":"Borrowed from Sanskrit त्वष्टृ (tvaṣṭṛ)."},
+"tvalchrelidzeite":{"d":[{"p":"n.","g":"A grey mineral containing mercury, antimony, arsenic, and sulfur.","dom":"chemistry"}],"e":"From Tvalchrelidze + -ite, after Alexander Anton Tvalchrelidze (1881–1957), academic at the Georgia Academy of Science."},
+"tvedalite":{"d":[{"p":"n.","g":"An orthorhombic mineral containing beryllium, calcium, hydrogen, manganese, oxygen, and silicon.","dom":"chemistry"}],"e":"? + -ite"},
+"tveitite":{"d":[{"p":"n.","g":"An yttrium fluoride mineral.","dom":"chemistry"}],"e":"? + -ite"}
 }

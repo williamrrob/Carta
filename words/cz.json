@@ -35,5 +35,12 @@
 "Czosnówka":{"d":[{"p":"n.","g":"A village in Gmina Biała Podlaska, Biała Podlaska County, Lublin Voivodeship, Poland, first mentioned in 1596."}],"e":"Unadapted borrowing from Polish Czosnówka.","i":"/tʃɔːsˈnuːfkə/"},
 "Czarna Górna":{"d":[{"p":"n.","g":"A village in Gmina Czarna, Bieszczady County, Subcarpathian Voivodeship, Poland."}],"e":"Unadapted borrowing from Polish Czarna Górna."},
 "Czech Socialist Republic":{"d":[{"p":"n.","g":"One of the two republics of Czechoslovakia (1969–1990)."}],"e":"From Czech Česká socialistická republika."},
-"Czar plum":{"d":[{"p":"n.","g":"A kind of European plum (Prunus domestica), an early-season culinary plum with large, dark purple fruits.","x":"Of 22 young Czar plums planted in 1920 to replace the silvered trees removed, none has so far died, and only one has shown silvering; this indicates that there is very little danger of the young plums becoming infected from the previous trees, provided the latter are removed and burnt."}]}
+"Czar plum":{"d":[{"p":"n.","g":"A kind of European plum (Prunus domestica), an early-season culinary plum with large, dark purple fruits.","x":"Of 22 young Czar plums planted in 1920 to replace the silvered trees removed, none has so far died, and only one has shown silvering; this indicates that there is very little danger of the young plums becoming infected from the previous trees, provided the latter are removed and burnt."}]},
+"czarate":{"d":[{"p":"n.","g":"The territory ruled by a czar."},{"p":"n.","g":"The rank of a czar."}],"e":"From czar + -ate (forms nouns denoting rank or office or the concrete charge of it)."},
+"czaric":{"d":[{"p":"adj.","g":"of, relating to, or being a czar; tsaric"}],"e":"From czar + -ic."},
+"czarish":{"d":[{"p":"adj.","g":"of, or resembling a czar; tsarish"}],"e":"From czar + -ish."},
+"czarship":{"d":[{"p":"n.","g":"The rank of a czar; tsarship."}],"e":"From czar + -ship."},
+"czarocracy":{"d":[{"p":"n.","g":"A government headed by a czar or a similar autocrat."},{"p":"n.","g":"Government consisting of, or characterized by the appointment of officials with substantial autonomy, especially those commonly referred to as \"czars\" or \"tsars\"."}],"e":"From czar + -o- + -cracy.","r":["czarocratic","czarocrat"]},
+"czarocratic":{"d":[{"p":"adj.","g":"Of or pertaining to czarocracy."},{"p":"adj.","g":"Autocratic."}],"e":"From czar + -o- + -cratic.","r":["czarocracy","czarocrat"]},
+"czarocrat":{"d":[{"p":"n.","g":"A participant in czarocracy or a czarocratic regime."},{"p":"n.","g":"A supporter of czarocracy or a czarocratic government."},{"p":"n.","g":"An official or bureaucrat with substantial autonomy, especially one referred to as a \"czar\" or \"tsar\"."}],"e":"From czar + -o- + -crat.","r":["czarocracy","czarocratic"]}
 }

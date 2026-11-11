@@ -1,16 +1,16 @@
 1. Points per language (all points / drawn)
    language   old map              new map
-   en          269117 / 166632      246992 / 152456
-   fr           20442 / 20442       112908 / 63984
-   de           23806 / 23806       110920 / 85733
-   la           15507 / 15507        77655 / 53417
-   other       110075 / 110075      155433 / 155303
-   (new map total 703908 points, 500137 drawn after the layout's phrase rule; old 438947)
-   English dictionary entries not on the map (no page in words/, not an ancestor): 671218; kept as ancestors: 10164
-   per-language detail: {"ancestors":{"points":155433,"drawn":155303,"entries":70484,"folded":0,"quiet":0,"unconnected":0},"en":{"points":240061,"drawn":152456,"entries":237874,"folded":78141,"quiet":18342,"unconnected":77503},"fr":{"points":112908,"drawn":63984,"entries":98830,"folded":28880,"quiet":1162,"unconnected":48327},"de":{"points":110920,"drawn":85733,"entries":99717,"folded":54036,"quiet":687,"unconnected":24697},"la":{"points":77655,"drawn":53417,"entries":53452,"folded":25113,"quiet":60,"unconnected":24182}}
+   en          269117 / 166632      501575 / 406893
+   fr           20442 / 20442       112908 / 64605
+   de           23806 / 23806       110920 / 86062
+   la           15507 / 15507        77655 / 55577
+   other       110075 / 110075      173297 / 173206
+   (new map total 976355 points, 775619 drawn after the layout's phrase rule; old 438947)
+   English dictionary entries not on the map (no page in words/, not an ancestor): 420823; kept as ancestors: 18611
+   per-language detail: {"ancestors":{"points":173297,"drawn":173206,"entries":77223,"folded":0,"quiet":0,"unconnected":0},"en":{"points":494644,"drawn":406893,"entries":488269,"folded":294492,"quiet":17484,"unconnected":78114},"fr":{"points":112908,"drawn":64605,"entries":98830,"folded":28880,"quiet":897,"unconnected":47795},"de":{"points":110920,"drawn":86062,"entries":99717,"folded":54036,"quiet":482,"unconnected":24520},"la":{"points":77655,"drawn":55577,"entries":53452,"folded":25113,"quiet":14,"unconnected":22066}}
 
-2. Citations: exact 2389601 · by a language rule 226199 · bare 540327 · ambiguous 213783 (affixes 93096, words 120687)
-   homographs 434068: by id 71805, by Descendants list 12349, by gloss 27513, affix by what it forms 55213, by part of speech 53405; Descendants-tree items ambiguous 14439
+2. Citations: exact 2389625 · by a language rule 226199 · bare 540327 · ambiguous 213791 (affixes 93096, words 120695)
+   homographs 434082: by id 71805, by Descendants list 12349, by gloss 27513, affix by what it forms 55213, by part of speech 53411; Descendants-tree items ambiguous 14439
 
 3. Of the 8511 starting words, 8070 (94.8%) reach an ancestor at least as old as before;
    6409 (75.3%) have a primary line at least as many steps long. 0 are missing from the new map.
@@ -47,26 +47,26 @@
    PASS  French chanter resolves to one Latin verb — Latin ancestors: Latin|canto cantō, Latin|cano canō
    PASS  English schadenfreude is borrowed from German — German|Schadenfreude (bor)
 
-5. Families that still look like duplicates (same language and form once marks and * are ignored, one of them a bare citation): 151 groups (plus 92 groups of the dictionary's own homographs). Largest twenty, with family sizes:
-   Proto-Indo-European: pewǵ- (555) · *pewg- [bare] (4)
-   Proto-Indo-European: gʰreh₁- (434) · *ǵʰreh₁- [bare] (80)
-   Proto-Indo-European: nu (451) · *nū [bare] (4)
-   Proto-Indo-European: seǵʰ- (432) · *segʰ- [bare] (3)
-   Proto-Indo-European: kewk- (364) · *ḱewk- [bare] (23)
-   Proto-Indo-European: *ḱen- [bare] (187) · ken- (103)
-   Proto-Indo-European: weǵ- (225) · *weg- [bare] (36)
-   Proto-Indo-European: gʰrey- (203) · *gʰrēy- [bare] (38)
-   Proto-Indo-European: gew- (205) · *gēw- [bare] (12)
-   Ancient Greek: Λάιος [bare] (207) · Λᾱ́ῐ̈ος (6)
-   Proto-Germanic: *keukô [bare] (176) · *keukǭ [bare] (18)
-   Proto-Indo-European: *ǵʰel- [bare] (97) · gʰel- (66)
-   Proto-Indo-European: *līnom [bare] (143) · *linom [bare] (10)
-   Proto-Indo-European: *ḱewb- [bare] (76) · *kewb- [bare] (73)
-   Proto-Indo-European: meh₂ḱ- (111) · *meh₂k- [bare] (8)
-   Proto-Indo-European: derḱ- (108) · *derk- [bare] (6)
-   Proto-Indo-European: *ḱeh₃- [bare] (59) · keh₃- (52)
-   Arabic: قَهْوَة [bare] (102) · قَهْوَة (3)
-   Proto-Indo-European: *klewH- [bare] (56) · ḱlewH- (35)
-   Proto-Indo-European: *bʰrēḱ- [bare] (53) · *bʰreḱ- [bare] (15)
+5. Families that still look like duplicates (same language and form once marks and * are ignored, one of them a bare citation): 184 groups (plus 114 groups of the dictionary's own homographs). Largest twenty, with family sizes:
+   Proto-Indo-European: werǵ- (1419) · *werg- [bare] (4)
+   Proto-Indo-European: gʰreh₁- (718) · *ǵʰreh₁- [bare] (119)
+   Proto-Indo-European: pewǵ- (800) · *pewg- [bare] (8)
+   Proto-Indo-European: seǵʰ- (611) · *segʰ- [bare] (3)
+   Proto-Indo-European: nu (579) · *nū [bare] (4)
+   Proto-Indo-European: *ḱen- [bare] (417) · ken- (146)
+   Proto-Indo-European: ḱerd- (509) · *kerd- [bare] (5)
+   Proto-Indo-European: weǵ- (397) · *weg- [bare] (63)
+   Proto-Indo-European: kewk- (433) · *ḱewk- [bare] (26)
+   Proto-Indo-European: *līnom [bare] (320) · *linom [bare] (10)
+   Proto-Indo-European: gew- (282) · *gēw- [bare] (22)
+   Proto-Indo-European: gʰrey- (231) · *gʰrēy- [bare] (46)
+   Proto-Germanic: *keukô [bare] (239) · *keukǭ [bare] (36)
+   Ancient Greek: Λάιος [bare] (252) · Λᾱ́ῐ̈ος (6)
+   Proto-Indo-European: *ǵʰel- [bare] (159) · gʰel- (76)
+   Proto-Indo-European: *ḱeh₃- [bare] (157) · keh₃- (52)
+   Proto-Indo-European: *kewb- [bare] (113) · *ḱewb- [bare] (90)
+   Proto-Indo-European: derḱ- (176) · *derk- [bare] (10)
+   Proto-Indo-European: *klewH- [bare] (82) · ḱlewH- (52)
+   Proto-Indo-European: *gʰays- [bare] (123) · *ǵʰays- [bare] (10)
 
 6. IPA for the 25,000 most common English words: 20362 (81.4%); 24877 of them are dictionary points; 4515 points lack IPA, e.g. pm, jan, details, terms, posted, uk, hours, cd, conditions, windows, june, november

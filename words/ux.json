@@ -7,5 +7,11 @@
 "uxoriousness":{"d":[{"p":"n.","g":"Overt devotion or submissiveness to one's wife.","x":"The uxoriousness of Charles [the First] is re-echoed by all the writers of a certain party."}],"e":"From uxorious + -ness.","b":[{"s":"uxorious","k":"root"},{"s":"ness","k":"suffix"}],"wp":[{"t":"uxorious"},{"t":"-ness"}],"_at":"2026-10-21T15:41:24.541Z"},
 "uxorophobia":{"d":[{"p":"n.","g":"An inordinate fear of one's own wife, or of wives."},{"p":"n.","g":"A general fear of women"}],"e":"From Latin uxor (“wife”) + -phobia."},
 "uxory":{"d":[{"p":"n.","g":"Overt devotion or submissiveness to one's wife."}],"rel":{"t":"synonym of","l":"uxoriousness","by":"assistant","at":"2026-06-29T16:23:04.459Z"},"ss":{"uxoriousness":"Synonym of uxoriousness."},"_at":"2026-10-21T15:41:56.683Z"},
-"uxter":{"d":[{"p":"n.","g":"Money.","x":"Dicky […] made his best pace to a recess in a back street, there to examine his pogues; for though the uxter was gone from them, they might yet bring a few coppers from Mr Weech, if they were of good quality."}]}
+"uxter":{"d":[{"p":"n.","g":"Money.","x":"Dicky […] made his best pace to a recess in a back street, there to examine his pogues; for though the uxter was gone from them, they might yet bring a few coppers from Mr Weech, if they were of good quality."}]},
+"uxorilocal":{"d":[{"p":"adj.","g":"Matrilocal.","x":"In Gogni (Chad) a Sokoro, clad in his traditional tunic, a tunic as long as a raglan coat such as a snobbishly insular Parisian might sport whilst on safari, paid a visit to a son of his who was living in Mokulu as a willing victim of an unusual (and, until now, unknown) marital status constituting a paradoxical - or, as anthropologists say, \"uxorilocal\" - form of subjugation.","dom":"anthropology"}],"e":"From Latin uxor (“wife”) + English -i- + local."},
+"uxoricidal":{"d":[{"p":"adj.","g":"Of or pertaining to uxoricide."}],"e":"From uxoricide + -al."},
+"uxorially":{"d":[{"p":"adv.","g":"In an uxorial fashion.","x":"Clerical husbands who have been uxorially driven by wives who wielded their father's croziers, so to say, have been known to jib — nay, to kick out..."}],"e":"From uxorial + -ly."},
+"uxorilocally":{"d":[{"p":"adj.","g":"In an uxorilocal (matrilocal) manner.","dom":"anthropology"}],"e":"From uxorilocal + -ly."},
+"uxorilocality":{"d":[{"p":"n.","g":"The quality of being uxorilocal."}],"e":"From uxorilocal + -ity."},
+"uxoriality":{"d":[{"p":"n.","g":"uxoriousness"}],"e":"From uxorial + -ity."}
 }

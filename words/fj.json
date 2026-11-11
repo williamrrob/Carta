@@ -3,5 +3,11 @@
 "fjeld":{"d":[{"p":"n.","g":"A rocky, barren plateau, especially in Scandinavia.","x":"Almost every Norwegian farmer possesses some pasture-land high up in the fjeld, sometimes as much as twenty or thirty miles distant from his homestead.","dom":"geography"}],"e":"Borrowed from Danish fjeld. Doublet of fell. Doublet of field and veldt.","i":"/fjɛld/","rs":"fyehld"},
 "fjord horse":{"d":[{"p":"n.","g":"a relatively small but very strong horse breed from the mountainous regions of western Norway."}],"e":"Probably an anglicisation of Norwegian fjordhest."},
 "fjard":{"d":[{"p":"n.","g":"A more or less open body of water in a coastal archipelago.","x":"However, a variety of drowned glacial valleys called fjards have developed in the low-relief rocky coast of northern Sweden, having cross-sections with less steep walls and presenting some lateral terraces which may be confused with strandflats."}],"e":"Borrowed from Swedish fjärd. Doublet of fjord, ford, port, and firth."},
-"FJB":{"d":[{"p":"n.","g":"Joe Biden.","dom":"government"}]}
+"FJB":{"d":[{"p":"n.","g":"Joe Biden.","dom":"government"}]},
+"fjordlike":{"d":[{"p":"adj.","g":"Resembling or characteristic of a fjord."}],"e":"From fjord + -like."},
+"fjordic":{"d":[{"p":"adj.","g":"Relating to fjords.","x":"Why should the flow of water within a fjord be of interest to the geologist? After all, fjordic geomorphology has changed little over the last few thousand years. One reason is that attention has recently focused on fjords as archives of Holocene climate change."}],"e":"From fjord + -ic.","i":"/ˈfiːɔːdɪk/"},
+"fjorded":{"d":[{"p":"adj.","g":"Having fjords.","x":"The spectacular, deeply indented fjorded coasts of the eastern Arctic contrasts with the low islands and peninsulas of the western Arctic."}],"e":"From fjord + -ed."},
+"fjordless":{"d":[{"p":"adj.","g":"Without fjords."}],"e":"From fjord + -less."},
+"fjardic":{"d":[{"p":"adj.","g":"Relating to fjards."}],"e":"From fjard + -ic."},
+"fjordal":{"d":[{"p":"adj.","g":"Relating to a fjord","dom":"geography"}],"e":"fjord + -al"}
 }

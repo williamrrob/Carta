@@ -23,5 +23,21 @@
 "ajahn":{"d":[{"p":"n.","g":"A Buddhist teacher.","x":"Again I felt downcast. I could not understand the Ajahn's attitude. But then I realized that the Ajahn was wise, and was seeing how firm my intentions were.","dom":"buddhism"}],"e":"Borrowed from Thai อาจารย์ (aa-jaan)."},
 "Ajit":{"d":[{"p":"n.","g":"A male given name from Sanskrit."}],"e":"Borrowed from Sanskrit अजीत (ajīta)."},
 "Ajatashatru":{"d":[{"p":"n.","g":"an epithet of Yudhishthira"},{"p":"n.","g":"an epithet of Lord Shiva"},{"p":"n.","g":"King of the Haryanka dynasty of Magadha"},{"p":"n.","g":"A male given name from Sanskrit used in India."}],"e":"Borrowed from Sanskrit अजातशत्रु (ajātaśatru)."},
-"Ajatshatru":{"d":[{"p":"n.","g":"an epithet of Yudhishthira"},{"p":"n.","g":"an epithet of Lord Shiva"},{"p":"n.","g":"King of the Haryanka dynasty of Magadha"},{"p":"n.","g":"A male given name from Sanskrit used in India."}],"e":"Borrowed from Sanskrit अजातशत्रु (ajātaśatru)."}
+"Ajatshatru":{"d":[{"p":"n.","g":"an epithet of Yudhishthira"},{"p":"n.","g":"an epithet of Lord Shiva"},{"p":"n.","g":"King of the Haryanka dynasty of Magadha"},{"p":"n.","g":"A male given name from Sanskrit used in India."}],"e":"Borrowed from Sanskrit अजातशत्रु (ajātaśatru)."},
+"ajak":{"d":[{"p":"n.","g":"The dhole (Cuon alpinus).","x":"Indonesia where the ajak, the handsome, rufous, bushy-tailed wild dog (a subspecies of the Indian dhole) still thrives."}],"e":"From Indonesian ajak, from Malay ajak."},
+"ajog":{"d":[{"p":"adv.","g":"Whilst jogging; with a jogging motion; with agitation."},{"p":"adj.","g":"Agitated; jogging; moving about.","x":"9th June, 1810, Charles Bell, letter to George Bell\nI shall not forget to write to you of the paintings I occasionally see, but at this moment my mind is all ajog about my nervous system."}],"e":"From a- + jog.","i":"/əˈd͡ʒɒɡ/"},
+"ajon":{"d":[{"p":"n.","g":"A type of beer brewed from finger millet in northern and eastern Uganda.","x":"But how can I give up my malwa or ajon where drinkers must sit close together round a beer pot, often sharing the same drinking straws, thus exchanging salivary fluids?"}],"e":"From Ateso [Term?]."},
+"ajoite":{"d":[{"p":"n.","g":"A turquoise mineral with triclinic crystals, (K,Na)Cu₇²⁺AlSi₉O₂₄(OH)₆·3H₂O.","dom":"chemistry"}],"e":"Named after the type locality: New Cornelia mine in Ajo, Arizona, USA Ajo + -ite"},
+"ajmaline":{"d":[{"p":"n.","g":"An antiarrhythmic drug originally isolated from the roots of Rauvolfia serpentina."}],"e":"After Hakim Ajmal Khan, + -ine."},
+"ajingle":{"d":[{"p":"adj.","g":"Jingling.","x":"1890, Rosamund Marriott Watson (as Graham R. Tomson), “The Ballad of Tonio Manzi,” Scribner’s Magazine, Volume 7, No. 1, January 1890, p. 53,\n[…] the beasts in harness\nNow and then awaking, stirring,\nSet their listless bells ajingle."}],"e":"From a- + jingle.","i":"/əˈd͡ʒɪŋɡəl/"},
+"ajangle":{"d":[{"p":"adj.","g":"Jangling.","x":"1913, Bert Leston Taylor, “Canopus” in Motley Measures, Chicago: The Laurentian Publishers, p. 14,\nWhen men are calling names and making faces,\nAnd all the world’s ajangle and ajar,\nI meditate on interstellar spaces\nAnd smoke a mild seegar."}],"e":"From a- + jangle.","i":"/əˈd͡ʒæŋɡəl/"},
+"ajoene":{"d":[{"p":"n.","g":"An unsaturated disulfide obtained from garlic, with antioxidant, antithrombotic, and antimicrobial properties.","dom":"chemistry"}],"e":"From Spanish ajo (“garlic”) + -ene.","i":"/ˈɑːhoʊ.iːn/"},
+"ajiaco":{"d":[{"p":"n.","g":"A chicken and potato stew of Latin America."}],"e":"From Spanish ajiaco."},
+"ajaxification":{"d":[{"p":"n.","g":"The use of Ajax in JavaScript source code.","dom":"computing"}],"e":"From Ajax + -ification."},
+"ajimez":{"d":[{"p":"n.","g":"A bifora, in Spanish Moorish architecture.","dom":"architecture"}],"e":"From Spanish ajimez."},
+"ajmoda":{"d":[{"p":"n.","g":"A plant related to ajwain, Trachyspermum roxburghianum, used as a spice and in Ayurvedic medicine."},{"p":"n.","g":"The seeds of wild celery, used in Indian folk medicine."}],"e":"Probably from Hindi अजमोद (ajmod) from Sanskrit अजमोद (ajamoda)"},
+"ajinomoto":{"d":[{"p":"n.","g":"monosodium glutamate"}],"e":"From Japanese 味の素 (Ajinomoto)."},
+"ajari":{"d":[{"p":"n.","g":"In Japanese Buddhism, a senior monk who teaches students.","dom":"buddhism"}],"e":"From Japanese 阿闍梨. Doublet of acharya."},
+"ajitter":{"d":[{"p":"adj.","g":"Unsteady, as from anxiety; jittery."}],"e":"From a- + jitter."},
+"ajumble":{"d":[{"p":"adj.","g":"Jumbled; muddled.","x":"My thoughts were all ajumble."}],"e":"From a- + jumble."}
 }

@@ -28,5 +28,17 @@
 "Ivan the Terrible":{"d":[{"p":"n.","g":"Ivan IV Vasilyevich, who was the Grand Prince of Moscow and all Russia from 1533, and Tsar of all Russia from 1547 until his death in 1584."}],"e":"A calque of Russian Ива́н Гро́зный (Iván Gróznyj), using the older “inspiring fear or terror; dangerous; powerful” (not “defective; evil”) sense of terrible."},
 "Ivy Hatch":{"d":[{"p":"n.","g":"A hamlet in Ightham parish, Tonbridge and Malling district, Kent, England (OS grid ref TQ5854)."}],"e":"Hatch refers to a gate. Ivy is apparently from heuvy, which could mean heavy or high."},
 "ivory tickler":{"d":[{"p":"n.","g":"A pianist"}],"e":"From the verb tickle the ivories","au":"1/10/LL-Q1860_%28eng%29-Sumxr-ivory_tickler.wav/LL-Q1860_%28eng%29-Sumxr-ivory_tickler.wav.mp3","ss":{"ivory-thumper":"A pianist","ivory-pounder":"A pianist"},"_at":"2026-10-21T15:41:56.683Z"},
-"Ivry-sur-Seine":{"d":[{"p":"n.","g":"A commune in Val-de-Marne department, Île-de-France, France."}],"e":"Borrowed from French Ivry-sur-Seine."}
+"Ivry-sur-Seine":{"d":[{"p":"n.","g":"A commune in Val-de-Marne department, Île-de-France, France."}],"e":"Borrowed from French Ivry-sur-Seine."},
+"ivylike":{"d":[{"p":"adj.","g":"Resembling ivy.","x":"The deeply palmately lobed, ivylike leaves are light green and have an intense, sometimes unpleasant smell."}],"e":"From ivy + -like."},
+"ivorylike":{"d":[{"p":"adj.","g":"Resembling ivory.","x":"The waxen pallor of her face was almost spiritual in its ivorylike purity though her rosebud mouth was a genuine Cupid's bow, Greekly perfect."}],"e":"From ivory + -like."},
+"ivoride":{"d":[{"p":"n.","g":"A celluloid compound used as a substitute for ivory.","x":"The ivoride, to which we have referred, and which presents a scarcely distinguishable substitute for ivory, gives superior handles, which will not break or crack, nor absorb grease and stains."}],"e":"From ivor(y) + -ide."},
+"ivorytype":{"d":[{"p":"n.","g":"A picture produced by superposing a tinted translucent print upon a stronger print, so as to give the effect of a photograph in natural colours.","dom":"arts"}],"e":"From ivory + -type."},
+"ivoroid":{"d":[{"p":"n.","g":"A synthetic celluloid plastic resembling ivory."}],"e":"From ivory + -oid."},
+"ivabradine":{"d":[{"p":"n.","g":"A medication used for the symptomatic management of stable angina pectoris.","dom":"medicine"}],"e":"From iva- (of unknown origin) + -bradine.","i":"/aɪˈvæb.ɹəˌdiːn/"},
+"ivoriness":{"d":[{"p":"n.","g":"Quality of being ivory in colour.","x":"What interested men in Felicia was the warm ivoriness of her, faintly flushed with rose; the gray, greeny-blue eyes mysterious as opals; the small proud head shaped as were Greek heads of old[…]"}],"e":"From ivory + -ness."},
+"ivoried":{"d":[{"p":"adj.","g":"Decorated with ivory."},{"p":"adj.","g":"Furnished with teeth."}],"e":"From ivory + -ed."},
+"ivorist":{"d":[{"p":"n.","g":"A carver of ivory."}],"e":"From ivory + -ist."},
+"ivoryware":{"d":[{"p":"n.","g":"Articles made from ivory.","x":"What girl can resist an elaborate array of toiletries or the seductive qualities of ivoryware?"}],"e":"From ivory + -ware."},
+"ivorysmith":{"d":[{"p":"n.","g":"An artisan or worker in ivory.","x":"[…] weavers and embroiderers of Hindustan, the potters of the Gangetic valley and ivorysmiths of Upper India."}],"e":"From ivory + smith."},
+"ivyleaf":{"d":[{"p":"adj.","g":"Having leaves resembling those of the ivy; used in the names of various plants."}],"e":"From ivy + leaf."}
 }

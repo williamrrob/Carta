@@ -52,5 +52,9 @@
 "Lletty Brongu":{"d":[{"p":"n.","g":"A hamlet in Llangynwyd Middle community, Bridgend borough county borough, Wales (OS grid ref SS8888)."}],"e":"From Welsh."},
 "Llan Ffestiniog":{"d":[{"p":"n.","g":"A village in Ffestiniog community, Gwynedd, Wales (OS grid ref SH7042)."}],"e":"From Welsh."},
 "Llyn Padarn":{"d":[{"p":"n.","g":"A lake in Snowdonia, Gwynedd, Wales; the main settlement on the lake is Llanberis."}],"e":"From Welsh llyn + Padarn."},
-"LLM psychosis":{"d":[{"p":"n.","g":"A phenomenon wherein individuals reportedly develop or experience worsening psychosis, such as paranoia and delusions, in connection with their use of chatbots."}],"rel":{"t":"synonym of","l":"ai psychosis","by":"assistant","at":"2026-06-29T16:23:04.459Z"},"ss":{"AI psychosis":"Synonym of AI psychosis"},"_at":"2026-10-21T15:41:56.683Z"}
+"LLM psychosis":{"d":[{"p":"n.","g":"A phenomenon wherein individuals reportedly develop or experience worsening psychosis, such as paranoia and delusions, in connection with their use of chatbots."}],"rel":{"t":"synonym of","l":"ai psychosis","by":"assistant","at":"2026-06-29T16:23:04.459Z"},"ss":{"AI psychosis":"Synonym of AI psychosis"},"_at":"2026-10-21T15:41:56.683Z"},
+"llamalike":{"d":[{"p":"adj.","g":"Resembling or characteristic of a llama.","x":"The eat-or-be-eaten dynamic is, of course, as it has always been in these nature programs, but the camera here has an exquisite eye, whether focused on miniature deer, various llamalike animals, fish or — he said grudgingly — penguins."}],"e":"From llama + -like."},
+"llamanaco":{"d":[{"p":"n.","g":"A mammal of the camel family that is the hybrid offspring of a llama and a guanaco."}],"e":"Blend of llama + guanaco."},
+"llamaback":{"d":[{"p":"n.","g":"The back of a llama (for riding or carrying burdens)."}],"e":"From llama + back, after horseback."},
+"llapaca":{"d":[{"p":"n.","g":"Synonym of huarizo (“The hybrid offspring of a male llama and a female alpaca.”)."}],"e":"Blend of llama + alpaca."}
 }

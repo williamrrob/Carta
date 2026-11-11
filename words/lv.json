@@ -2,5 +2,6 @@
 "lv":{"d":[{"p":"n.","g":"A variable that is not directly measured but is inferred by means of a mathematical model from one or more directly observed variables."},{"p":"n.","g":"A surname.","x":"Vice president & chief risk officer Lv Tianjun shall perform duties of president until new president appointed"}],"rel":{"t":"abbrev of","l":"latent variable","by":"assistant","at":"2026-06-29T16:23:04.459Z"},"e":"From a modified form of the Hanyu Pinyin romanization of the Mandarin 呂 /吕 (Lǚ); connected with the practice of using the letter v as a substitute for ü in pinyin keyboard input schemes."},
 "lvi":{"d":[{"p":"adjective satellite","g":"being six more than fifty"}]},
 "lvii":{"d":[{"p":"adjective satellite","g":"being seven more than fifty"}]},
-"lviii":{"d":[{"p":"adjective satellite","g":"being eight more than fifty"}]}
+"lviii":{"d":[{"p":"adjective satellite","g":"being eight more than fifty"}]},
+"lvalue":{"d":[{"p":"n.","g":"A value that can be treated as an address or storage location.","x":"Clarified that rvalue references to function types produce non-rref lvalues (previously stated in the general wording in 5¶6 but inadvertently contradicted in the detailed wording of 5.2.2, 5.2.9, etc.).","dom":"computing"}],"e":"From L + value, where L stands for left-hand side (of an assignment). In the context of the C programming language it is sometimes re-explained as locator value.","i":"/ˈɛl.væl.juː/"}
 }

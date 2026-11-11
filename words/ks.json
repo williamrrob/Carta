@@ -4,5 +4,8 @@
 "kshetra":{"d":[{"p":"n.","g":"A holy precinct or temenos."}],"e":"Borrowed from Sanskrit क्षेत्र (kṣetra, “field, area, tract of land”)."},
 "Ksiazek":{"d":[{"p":"n.","g":"A surname from Polish."}],"e":"Borrowed from Polish Książek.","i":"/ˈksjɑzɛk/","rs":"KSYAH-zehk"},
 "Ksar es-Seghir":{"d":[{"p":"n.","g":"A town in Tangier-Tetouan-Al Hoceima, Morocco."}],"e":"Borrowed from French Ksar es-Seghir, from Moroccan Arabic القصر الصغير (le-qṣar le-ṣḡīr, le-qṣar eṣ-ṣḡīr), from Arabic القَصْر الصَّغِير (al-qaṣr aṣ-ṣaḡīr)."},
-"Ksar el-Kebir":{"d":[{"p":"n.","g":"A city in Tangier-Tetouan-Al Hoceima, Morocco."}],"e":"Borrowed from French Ksar el Kébir, from Moroccan Arabic القصر الكبير (le-qṣar le-kbīr), from Arabic القَصْر الكَبِير (al-qaṣr al-kabīr)."}
+"Ksar el-Kebir":{"d":[{"p":"n.","g":"A city in Tangier-Tetouan-Al Hoceima, Morocco."}],"e":"Borrowed from French Ksar el Kébir, from Moroccan Arabic القصر الكبير (le-qṣar le-kbīr), from Arabic القَصْر الكَبِير (al-qaṣr al-kabīr)."},
+"ksar":{"d":[{"p":"n.","g":"a fortified traditional village in North Africa."}],"e":"Borrowed from French ksar, from a Maghrebi form of Arabic قَصْر (qaṣr). Doublet of qasr and castrum"},
+"kshanti":{"d":[{"p":"n.","g":"patience, forbearance and forgiveness: one of the paramitas in Theravāda and Mahāyāna Buddhism.","dom":"buddhism"}],"e":"From Sanskrit क्षान्ति (kṣānti)."},
+"kshatriyahood":{"d":[{"p":"n.","g":"The quality of being a kshatriya."}],"e":"From kshatriya + -hood."}
 }

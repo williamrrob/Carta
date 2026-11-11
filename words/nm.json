@@ -1,4 +1,5 @@
 {
 "nm":{"d":[{"p":"v.","g":"Let alone; much less."}],"s":["nanometer","nanometre","millimicron","micromillimeter","micromillimetre"],"rel":{"t":"abbrev of","l":"never mind","by":"assistant","at":"2026-06-29T16:23:04.459Z"},"ss":{"nvm":"Initialism of never mind."},"_at":"2026-10-21T15:41:40.283Z"},
-"nmr":{"d":[{"p":"n.","g":"resonance of protons to radiation in a magnetic field"}],"i":"/ˌɛˌnɛˈmɑr/","rs":"eh-neh-MAHR"}
+"nmr":{"d":[{"p":"n.","g":"resonance of protons to radiation in a magnetic field"}],"i":"/ˌɛˌnɛˈmɑr/","rs":"eh-neh-MAHR"},
+"nMOSFET":{"d":[{"p":"n.","g":"A type of metal–oxide–semiconductor field-effect transistor (MOSFET) that utilizes an n-type channel, conducting when a voltage voltage exceeding a threshold is applied to the gate relative to the source. It is commonly used in complementary metal–oxide–semiconductor (CMOS) technology alongside pMOSFETs.","x":"The source-drain breakdown characteristic of NMOSFETS exhibits an abrupt curve due to avalanche breakdown following punchthrough.","dom":"business"}],"e":"n + MOSFET, where n denotes \"negative\" or \"n-type\".","i":"/ˈɛnˌɛmˌoʊˌɛsˌɛfˌiːˌtiː/"}
 }

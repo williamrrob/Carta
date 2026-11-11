@@ -1,4 +1,5 @@
 {
 "RMHHer":{"d":[{"p":"n.","g":"A participant in the Usenet newsgroup rec.music.hip-hop.","x":"As far as I know, Jeremy Somers is the only RMHHer who works for Raw Shack."}],"e":"From RMHH + -er.","b":[{"s":"RMHH","k":"root"},{"s":"er","k":"suffix"}]},
-"rmb":{"d":[{"p":"v.","g":"Pseudo-acronym of remember."}],"au":"f/f3/En-au-RMB.ogg/En-au-RMB.ogg.mp3"}
+"rmb":{"d":[{"p":"v.","g":"Pseudo-acronym of remember."}],"au":"f/f3/En-au-RMB.ogg/En-au-RMB.ogg.mp3"},
+"rmgroup":{"d":[{"p":"n.","g":"A Usenet control message indicating that a newsgroup should be removed.","x":"The capability somewhat exists in the rmgroup control message now; just define MANUALLY in your defs.h file. This should be extended to the other control messages."},{"p":"v.","g":"To remove (a newsgroup) or attempt to do so by means of such a message.","x":"Who the HELL is net.msg.ctl and why do they keep telling me to 'rmgroup this andthat'. I LIKE SOME OF THOSE NEWSGROUPS. I WANT THEM. I WILL NOT rm THEM!!!!"}],"e":"From rm (“Abbreviation of remove”) + group. Internal name of the message, short for remove group."}
 }

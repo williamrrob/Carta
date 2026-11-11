@@ -5,5 +5,10 @@
 "UFO religionist":{"d":[{"p":"n.","g":"An adherent of a UFO religion.","x":"2003, Christopher Partridge, UFO Religions, Routledge, link\n[…] , von Däniken is not a UFO religionist […]"}],"e":"From UFO religion + -ist.","wp":[{"t":"UFO religion"},{"t":"-ist"}],"_at":"2026-10-21T15:41:29.381Z"},
 "uff da":{"d":[{"p":"interj.","g":"Expressing surprise, dismay, relief, exhaustion, or a sudden shock to the senses."}],"e":"From Norwegian, brought to the US by Scandinavian settlers.","i":"/ˈʊfdə/","au":"3/3c/En-us-uff_da.ogg/En-us-uff_da.ogg.mp3"},
 "UFO nest":{"d":[{"p":"n.","g":"A crop circle, regarded as a landing site for UFOs.","dom":"mysticism"}]},
-"ufonaut":{"d":[{"p":"n.","g":"A pilot or passenger of a UFO.","dom":"mysticism"}],"e":"From UFO + -naut.","b":[{"s":"ufo","k":"root"},{"s":"naut","k":"root"}],"wp":[{"t":"UFO"},{"t":"-naut"}],"_at":"2026-10-21T15:41:29.381Z"}
+"ufonaut":{"d":[{"p":"n.","g":"A pilot or passenger of a UFO.","dom":"mysticism"}],"e":"From UFO + -naut.","b":[{"s":"ufo","k":"root"},{"s":"naut","k":"root"}],"wp":[{"t":"UFO"},{"t":"-naut"}],"_at":"2026-10-21T15:41:29.381Z"},
+"ufologist":{"d":[{"p":"n.","g":"A person who studies UFOs.","x":"Still, something strange was afoot in Rendlesham, and even if the file is unlikely to satisfy either ufologists or debunkers, it suggests that the truth is still out there."}],"e":"From ufolog(y) + -ist. By surface analysis, UFO + -logist.","i":"/ˌjuːˈfɑləd͡ʒɪst/"},
+"ufological":{"d":[{"p":"adj.","g":"Of or pertaining to ufology."}],"e":"From ufology + -ical."},
+"ufiprazole":{"d":[{"p":"n.","g":"A proton pump inhibitor.","dom":"medicine"}],"e":"From [Term?] + -prazole (“benzimidazole derivative”)."},
+"ufologically":{"d":[{"p":"adv.","g":"In terms of ufology.","x":"Very briefly described, my approach is to take whatever is anomalous, paranormal, or extraordinary and first determine whether or not it appears to be ufologically related. Then I rely on my intuition."}],"e":"From ufological + -ly."},
+"ufocal":{"d":[{"p":"n.","g":"A focus of UFO activity.","x":"What is a fact is that at one point in Warminster thirteen leys converge, and this district is the scene of abundant UFO activity. A correlation certainly exists between ley centres and ufocals (areas of above average UFO activity)."}],"e":"Blend of UFO + focal."}
 }

@@ -108,7 +108,8 @@ const keyOfNode = [];
 const pushTo = (m, fam, k, i) => { let x = m.get(fam); if (!x) m.set(fam, (x = new Map())); const a = x.get(k); if (a) a.push(i); else x.set(k, [i]); };
 const entryIdx = new Map();  // fam|title|n → i
 
-const QUIET_NOW = new Set(["slang", "Internet", "neologism", "nonce-word", "vulgar"]);
+// hidden until visited: Internet slang, neologisms, nonce words, slang (Will, Nov 2026: vulgar words are fine)
+const QUIET_NOW = new Set(["slang", "Internet", "neologism", "nonce-word"]);
 let records = 0;
 let headwordsG = new Set();
 const formOf = new Map();   // English inflected form → lemma (FORMS=1 extraction), used only for words/ headwords
