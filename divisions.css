@@ -148,3 +148,9 @@
 .dv-fam i { width: 10px; height: 10px; border-radius: 50%; flex: 0 0 auto; }
 /* the old top bar (lenses, menu) gives way to the language line and the rose */
 .app[data-div] .topbar { display: none !important; }
+/* wide screens: pages and the strip keep a reading column; the language line stays compact */
+@media (min-width: 720px) {
+  .app[data-div] .dv-page:not([hidden]), .app[data-div] .dv-strip:not([hidden]) { left: calc(50% - 330px); right: calc(50% - 330px); }
+  .app[data-div] .dv-key:not([hidden]) { left: auto; width: 520px; right: 16px; }
+  .app[data-div="Explore"] .dv-langs:not([hidden]) { right: auto; justify-content: flex-start; gap: 34px; }
+}
