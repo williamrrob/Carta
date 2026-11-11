@@ -1,4 +1,48 @@
-# Handoff: build the four-language graph (next steps)
+# Handoff: next session — build the four divisions (Priestley)
+
+**Read first:** `PLAN-DIVISIONS.md` (every control, screen by screen; agreed with Will Nov 11 2026).
+**Mockups:** design canvas "Carta · Priestley · four divisions",
+https://claude.ai/artifact/StTqoRJUU5tK2Q85Dm6jwd (slug d1a3f0bb-7e7d-4d18-bd34-9d6ee9616cd0), 11 phone
+screens P01–P11. Generator: `review/design/priestley-mocks.py` (writes the .dc.html boards; the map
+families in them are hand-placed stand-ins, not the real layout). Will's comment threads on the canvas
+are all answered; read them with the artifact comment tools for the reasoning.
+
+Shape in one paragraph: the map is the map (never a progress record). Orb → Explore · Learn · Search ·
+Saved. Learn/Search/Saved open the map the same way (map fills, the division's page becomes a strip
+at the bottom, above Back/Forward and the orb). Learn = landing (one row per language: equal
+Translate + Quiz buttons, "N words", no "due"; English shows Quiz only) → Translate page (excerpt,
+your English typed straight under it, Check; tapping a word drops the keyboard and opens a lighter map
+inlay *between* the excerpt and your English; corner ⤢ swaps to the strip) → Checked (marks in place,
+score + whole-sentence translation, Next). Quiz: FR/DE/LA = missed words in their sentence, sharing the
+excerpt schedule; English = today's vocabulary quiz, kept. Explore: languages in small caps across the
+top (struck through = hidden), Back/Forward/Step out bottom-left, compass rose top-right (fully zoomed
+out) opens the map key. Word card: lineage with dates, second sources inline, synonyms line, doublets
+(tap draws the fork), Examples (by Learn level; English from dictionary quotations), bookmarks.
+Saved: words + excerpts, Settings at the foot (Look, slang/new words with Priestley's ☞ beside the
+active choice, reading speed, reset a level, check for updates).
+
+Will's standing rules for this work: talk through a plan before changing anything (even mockups);
+Priestley only until it's really good; fewer buttons, not too few; nothing shown twice; no
+"Wiktionary" in UI text; don't push to main until he's seen it.
+
+Still open:
+1. **Match** (new Learn mode, proposed by Will): pick two languages (or English + English), match
+   pairs from the same root. Proposed: five pairs, spelling-distant pairs plus one easy one, frequency/
+   level-filtered, a match shows the shared ancestor and opens the map via the strip; lives as one
+   extra row on the Learn landing. Undecided: any shared ancestor vs a recent one (≤ Latin/Proto-
+   Germanic); board size.
+2. Reading speed with the ☞ pattern too (offered, not answered).
+3. Latin excerpts: pool ~9,400 translated quotations from the Latin dump (`build-reader.py pool`
+   needs a Latin path); Latin Translate/Quiz depend on it.
+4. English → FR/DE/LA translation: later phase.
+
+Suggested order: orb + divisions shell and the strip/swap → Learn (landing, translate, inlay, check)
+→ Quiz → Search → Saved/Settings → word card changes → Explore language line + compass → removals
+(doublet hunt, home buttons, Sense lens, reader leftovers). Check at phone and desktop widths.
+
+---
+
+# Earlier handoff: build the four-language graph
 
 ## Status, Nov 10 2026: steps 1–3 done, report written, waiting on Will
 
