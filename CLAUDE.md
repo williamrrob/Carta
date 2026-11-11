@@ -50,7 +50,17 @@ release); search letters the query in place and marks matches on the map.
   `info.json`) → `scripts/report-lexeme-graph.js <old graph/>` (numbers + checks). Then bump `V` in graph.js.
   `scripts/build-etym-graph.js` is the previous, English-first builder (kept for reference; don't use).
 
-**Reader (French / German).** `reader.js` + `reader.css`, opened from the menu or the home
+**Four divisions (Nov 2026, Priestley only; PLAN-DIVISIONS.md, HANDOFF.md).** The orb opens Explore ·
+Learn · Search · Saved (`divisions.js`, `learn.js`, layout in `divisions.css`, materials in looks.css
+"DIVISIONS"). Priestley is the only look for now (`CARTA_ONLY_LOOK` in index.html). The map never
+resizes: pages lie over it; a page opens a window onto it with `RootMap.setViewport` (CSS clip +
+GL scissor), or *swaps* (map fills, page waits as the bottom strip). Each division keeps its own map
+view (`RootMap.scene/setScene`). Learn = the reader's engine (`carta.read.<lc>` v2 unchanged) with
+new pages; reader.js/reader.css are no longer loaded. `scripts/build-division-index.js` derives
+`graph/sorted4.bin` (Search), `graph/forms/` (FR/DE inflections → map points) and `graph/langmask.bin`
+(Explore's language line) from served files: re-run after the layout or the reader build.
+
+**Reader (French / German), now Learn's engine.** `reader.js` + `reader.css`, opened from the menu or the home
 buttons (❦ Lire / ❦ Lesen). **The reader and the map share one set of dictionary entries** (Nov 2026):
 `build-lexeme-graph.js` writes `g/lex-<fr|de>.jsonl` (every FR/DE entry with its map key) and
 `g/forms-<lc>.json` (inflected form → lemmas, from `extract-kaikki.js` with FORMS=1); the layout writes

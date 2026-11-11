@@ -109,11 +109,13 @@
       if (good.length >= 25 && (!Object.keys(st.learn).length || good.some((q) => dueIn(q) > 0) || b > ids[0] + 12)) break;
     }
     if (good.length) {
+      // an excerpt the dictionary also gives in English comes first, so Check can show it
+      const tr = good.filter((q) => q.en); if (tr.length) good.splice(0, good.length, ...tr);
       const due = good.filter((q) => dueIn(q) > 0);
       if (due.length && Math.random() < 0.75) return due[Math.floor(Math.random() * Math.min(due.length, 12))];
       return good[Math.floor(Math.random() * Math.min(good.length, 25))];
     }
-    near.sort((a, b) => a[0] - b[0]);
+    near.sort((a, b) => a[0] - b[0] || (b[1].en ? 1 : 0) - (a[1].en ? 1 : 0));
     return near.length ? near[Math.floor(Math.random() * Math.min(near.length, 8))][1] : fewest;
   }
 
