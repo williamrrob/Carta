@@ -88,7 +88,9 @@
   let gl, glc, lab, ctx, und;  // canvases (und: the look's ground, under the GL layer)
   let W = 0, H = 0;
   const cam = { x: 0, y: 0, s: 0.1 };
-  const insets = { top: 0, bottom: 0 };
+  const insets = { top: 0, bottom: 0 };   // the band the map frames into (effective)
+  const appInsets = { top: 0, bottom: 0 }; // what the explore chrome asked for
+  let viewport = null;  // a division's window onto the map ({top, bottom} px): overrides appInsets, clips drawing
   let focus = null;       // { idx, lit:Set, path:[…], kids:[…], extra:[…] }
   let lens = "descent";
   let senseLinks = null;  // { from, to:[…] }
@@ -100,6 +102,7 @@
   let onInteract = null;
   let labelHits = []; // [x0,y0,x1,y1,idx] of labels drawn this frame
   let trail = null;
+  let ctxLost = false; // iOS drops the GL context under memory pressure; it is rebuilt on restore
   let onTap = null, onDraw = null;
   const glossWant = new Set(); // chunks requested for close-range glosses
   let readyResolve; RM.ready = new Promise((r) => (readyResolve = r));
@@ -257,9 +260,15 @@
   }
 
   function draw() {
-    if (!G || !gl) return;
+    if (!G || !gl || ctxLost) return;
+    if (viewport && H - insets.top - insets.bottom <= 0) { labelHits = []; return; } // a page covers the map: draw nothing
     gl.viewport(0, 0, glc.width, glc.height);
+    gl.disable(gl.SCISSOR_TEST);
     gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
+    if (viewport) { // only the window shows: don't fill pixels under the page (GL's y runs upward)
+      gl.enable(gl.SCISSOR_TEST);
+      gl.scissor(0, Math.floor(insets.bottom * DPR), glc.width, Math.max(0, Math.ceil((H - insets.bottom - insets.top) * DPR)));
+    }
     gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
     const ctr = [cam.x - (0) / cam.s, cam.y + (insets.bottom - insets.top) / 2 / cam.s];
     const dim = focus ? 0.55 : 1;
@@ -806,6 +815,7 @@
     return [(px - W / 2) / cam.s + ctr[0], (py - H / 2) / cam.s + ctr[1]];
   }
   function pick(px, py) {
+    if (viewport && (py < insets.top || py > H - insets.bottom)) return -1;
     // a word's label is as tappable as its dot (labels are the big targets on a phone)
     for (let k = labelHits.length - 1; k >= 0; k--) {
       const h = labelHits[k];
@@ -1024,6 +1034,13 @@
     ctx = lab.getContext("2d");
     if (!gl) { el.classList.add("map-nogl"); return; }
     P_PT = prog(VS_PT, FS_PT); P_LN = prog(VS_LN, FS_LN);
+    glc.addEventListener("webglcontextlost", (e) => { e.preventDefault(); ctxLost = true; });
+    glc.addEventListener("webglcontextrestored", () => {
+      ctxLost = false;
+      P_PT = prog(VS_PT, FS_PT); P_LN = prog(VS_LN, FS_LN);
+      if (G) { buildBuffers(); if (focus) { const ex = focus.extra; focus = buildFocus(focus.idx, ex); focus.extra = ex; } if (globalPairs) RM.setGlobal(globalPairs); }
+      dirty = true;
+    });
     resize();
     window.addEventListener("resize", resize);
     if (window.ResizeObserver) new ResizeObserver(resize).observe(el); // the map also changes size without a window resize (installed-app height fix)
@@ -1053,7 +1070,28 @@
     const i = m.get(w); if (i != null) return i;
     const j = m.get(String(w).toLowerCase()); return j == null ? -1 : j;
   };
-  RM.setInsets = function (o) { Object.assign(insets, o); dirty = true; };
+  RM.setInsets = function (o) { Object.assign(appInsets, o); if (!viewport) { Object.assign(insets, appInsets); dirty = true; } };
+  // a division's window onto the map: frame, letter and hit-test only within [top, H - bottom]
+  RM.setViewport = function (v) {
+    viewport = v ? { top: v.top || 0, bottom: v.bottom || 0 } : null;
+    Object.assign(insets, viewport || appInsets);
+    dirty = true;
+  };
+  // what one division sees: camera, the lit word, its extras, search marks, the walk
+  RM.scene = function () {
+    return { x: cam.x, y: cam.y, s: cam.s, idx: focus ? focus.idx : -1, extra: focus && focus.extra ? focus.extra : null,
+      marks: marks ? marks.slice() : null, trail: trail ? trail.slice() : null };
+  };
+  RM.setScene = function (sc, dur) {
+    if (!G || !sc) return Promise.resolve();
+    traceToken++;
+    focus = sc.idx >= 0 ? buildFocus(sc.idx, sc.extra) : null;
+    if (focus && sc.extra) focus.extra = sc.extra;
+    marks = sc.marks && sc.marks.length ? sc.marks.slice() : null;
+    if (sc.trail !== undefined) RM.setTrail(sc.trail);
+    dirty = true;
+    return flyTo(sc.x, sc.y, sc.s, dur == null ? 450 : dur);
+  };
   RM.focus = function (idx, o) {
     if (!G || idx < 0) return Promise.resolve();
     if (!(o && o.fromTrace)) { traceToken++; traceTarget = -1; } // a plain focus supersedes a running trace
@@ -1129,8 +1167,13 @@
     dirty = true;
   };
   RM.xy = function (i) { return [G.xy[i * 2], G.xy[i * 2 + 1]]; };
+  RM.label = function (i) { return G ? G.labels[i] : ""; };
+  RM.langName = function (i) { return G ? G.info.langs[G.lang[i]] : ""; };
+  RM.size = function (i) { return G ? G.meta[i * 2 + 1] : 0; };
+  RM.fetchGraph = function (p) { return fetch("graph/" + p + "?v=" + V); }; // files beside the map's, cached with its build
+
   RM.clearFocus = function () { focus = null; dirty = true; };
-  RM.overview = function () { if (!G) return Promise.resolve(); focus = null; return flyTo(0, 0, fitScale(), 900); };
+  RM.overview = function (dur) { if (!G) return Promise.resolve(); focus = null; return flyTo(0, 0, fitScale(), dur == null ? 900 : dur); };
   RM.info = function (i) {
     if (!G || i < 0) return null;
     return { idx: i, label: G.labels[i], lang: G.info.langs[G.lang[i]], family: G.info.families[G.meta[i * 2]], fam: G.meta[i * 2],

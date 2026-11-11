@@ -2083,6 +2083,7 @@
   function sheetHeight(st) {
     const H = viewH();
     if (st === "hidden") return 0;
+    if (st === "home" && window.CartaDiv && CartaDiv.on()) return 0; // the divisions' Explore: nothing below the map
     if (st === "home") { // as tall as its buttons need on this screen, plus the home-indicator strip
       const hint = document.getElementById && document.getElementById("hint");
       if (hint && hint.offsetHeight) return Math.max(110, Math.ceil(hint.offsetHeight + 14 + 22 + safeBottom()));
@@ -2100,7 +2101,8 @@
     if (contentEl && contentEl.style && contentEl.style.setProperty) contentEl.style.setProperty("--sheet-h", h + "px");
     // the card sits at the bottom: frame the dot in the space above it
     const cardH = calloutEl && !calloutEl.hidden ? calloutEl.offsetHeight : 260;
-    const bottomInset = st === "full" ? 0 : st === "callout" ? cardH + 24 : h;
+    const floor = window.CartaDiv ? CartaDiv.floor() : 0; // the swap's strip and nav sit under the map's working area
+    const bottomInset = (st === "full" ? 0 : st === "callout" ? cardH + 24 : h) + floor;
     // the dock is a full search bar only on the open map; over any card it folds into circles
     if (appShell && appShell.dataset && appShell.dataset.dock !== "open") appShell.dataset.dock = "compact";
     if (window.RootMap && RootMap.setInsets) RootMap.setInsets({ top: MAP_TOP, bottom: bottomInset });
@@ -2109,7 +2111,7 @@
       calloutEl.hidden = !show;
       if (show) {
         placeCallout();
-        if (window.RootMap && RootMap.setInsets) RootMap.setInsets({ top: MAP_TOP, bottom: calloutEl.offsetHeight + 24 });
+        if (window.RootMap && RootMap.setInsets) RootMap.setInsets({ top: MAP_TOP, bottom: calloutEl.offsetHeight + 24 + floor });
       }
       // the planisphere's window sits above whatever is open below it: the card, or the turned-over sheet
       if (typeof placePlate === "function") {
@@ -2421,7 +2423,7 @@
   // the orb, its action panel, the words each source would use, search, and the plate.
   var LOOK_UI = {
     priestley: { name: "Priestley", sub: "A New Chart of History, 1769", theme: "light", meta: "#f1e8d3", open: "The description",
-      head: "Explanation", acts: [["Search", "Search the index", "find a word"], ["Wander", "Wander", "a neighbour"], ["Step out", "Step out", "the family"], ["Back", "Back", "the last word"], ["Menu", "Contents", "and settings"]],
+      acts: [["Explore", "Explore", "the whole chart"], ["Learn", "Learn", "translate · quiz"], ["Search", "Search", "find a word"], ["Saved", "Saved", "your words, excerpts, settings"]],
       found: function (n, m) { return "An index of " + n + " name" + (n === 1 ? "" : "s") + " · " + m + " upon this chart"; }, q: function (t) { return t.toUpperCase(); } },
     ortelius: { name: "Ortelius", sub: "Typus Orbis Terrarum, 1570", theme: "light", meta: "#ecdfbf", open: "Read the text",
       acts: [["Search", "Search"], ["Wander", "Wander"], ["Step out", "Step out"], ["Back", "Back"], ["Menu", "Contents"]],
@@ -2439,6 +2441,7 @@
   var LOOK_ORDER = ["priestley", "ortelius", "blueprint", "planisphere", "netscape"];
   var lookName = "planisphere";
   try { var storedLook = localStorage.getItem("rootwork.look"); if (LOOK_UI[storedLook]) lookName = storedLook; } catch (e) {}
+  if (window.CARTA_ONLY_LOOK) lookName = window.CARTA_ONLY_LOOK; // the divisions are Priestley-only until the other looks are redone
   function lookUI() { return LOOK_UI[lookName]; }
   const orbEl = $("orb"), actsEl = $("acts"), nsMsg = $("nsMsg"), nsTitle = $("nsTitle"), noteBar = $("wanderNote");
   const qShow = $("qShow"), qCap = $("qCap");
@@ -2494,9 +2497,11 @@
     if (orbEl && orbEl.classList) orbEl.classList.toggle("on", on);
     if (appShell && appShell.classList) appShell.classList.toggle("acts-open", on);
     if (on) say(lookName === "netscape" ? "" : null);
+    if (on && window.CartaDiv) actsEl.querySelectorAll(".act").forEach(function (b) { b.classList.toggle("cur", b.dataset.act === CartaDiv.cur()); });
   }
   function doAct(name) {
     actsOpen(false);
+    if (window.CartaDiv && CartaDiv.has(name)) { CartaDiv.go(name); return; }
     if (name === "Search") openSearch();
     else if (name === "Wander") wander();
     else if (name === "Step out") stepOut();
@@ -2886,7 +2891,10 @@
   // ---- the key ----
   function quietShown() { try { return localStorage.getItem("rootwork.showQuiet") === "1"; } catch (e) { return false; } }
   if (quietShown() && window.RootMap) RootMap.setOptions({ showQuiet: true });
-  window.Carta = { openNode: function (i, f) { return openNode(i, f); }, run: function (w) { return run(w); } };
+  // word(): "@i" for a map point, else the English headword
+  window.Carta = { openNode: function (i, f) { return openNode(i, f); }, run: function (w) { return run(w); },
+    word: function () { return mapWord || currentWord || ""; }, home: function () { goHome(); }, sheet: function (st) { if (st) setSheet(st); return sheetState; },
+    actsOpen: function (on) { actsOpen(on); } };
   const keyBtn = $("mapKeyBtn"), keyEl = $("mapKey");
   if (keyBtn && keyEl && typeof keyBtn.addEventListener === "function") {
     keyBtn.addEventListener("click", function () {

@@ -683,3 +683,30 @@ button, input, select, textarea, .alpha-tab, .save-btn { font-family: inherit; }
 .map-key .key-actions .lin-part { padding: 10px 14px; min-height: 40px; line-height: 1.2; }
 /* the full sheet's grip clears the status bar so it can be reached */
 .app[data-sheet="full"] .sheet-grip { height: calc(26px + env(safe-area-inset-top) * 0.5); align-items: end; padding-bottom: 6px; }
+
+/* ---------- DIVISIONS (Priestley): the orb's four divisions, pages, strip, nav (mockups P01–P11) ---------- */
+:root[data-look="priestley"] { --red: #a4503a; --blue-mark: #3d5f86; }
+:root[data-look="priestley"] .acts .act { flex-direction: column; align-items: flex-start; gap: 1px; padding: 9px 0; min-height: 44px; font-size: 19px; }
+:root[data-look="priestley"] .acts .act:first-child { border-top: 0; }
+:root[data-look="priestley"] .acts .act .act-note { margin-left: 0; font-size: 12px; }
+:root[data-look="priestley"] .acts .act.cur .act-name { text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: .8px; }
+:root[data-look="priestley"] .acts { padding: 14px 18px; width: 230px; }
+:root[data-look="priestley"] .sc { font-size: 10.5px; letter-spacing: .22em; text-transform: uppercase; }
+:root[data-look="priestley"] .dv-page, :root[data-look="priestley"] .dv-strip {
+  background: var(--laid), #f1e8d3; color: var(--ink); font-family: var(--font);
+  border: 2px solid var(--ink); outline: .6px solid var(--ink); outline-offset: -6px; border-radius: 0; box-shadow: none;
+}
+:root[data-look="priestley"] .dv-strip { cursor: pointer; font-size: 15px; line-height: 1.45; }
+:root[data-look="priestley"] .dv-strip-cap { font-size: 10.5px; letter-spacing: .18em; text-transform: uppercase; }
+:root[data-look="priestley"] .dv-nav-btn { background: #f1e8d3; color: var(--ink); font-family: var(--font); font-size: 17px;
+  border: 2px solid var(--ink); outline: .6px solid var(--ink); outline-offset: -5px; border-radius: 0; }
+:root[data-look="priestley"] .dv-nav-btn:active { background: var(--you); }
+:root[data-look="priestley"] .dv-q { border-bottom: 1.5px solid var(--ink); }
+:root[data-look="priestley"] .dv-q input { font-family: var(--font); color: var(--ink); }
+:root[data-look="priestley"] .dv-count { margin: 4px 0 0; color: var(--muted); }
+:root[data-look="priestley"] .dv-res { border-top: .6px solid var(--ink); }
+:root[data-look="priestley"] .dv-res.dv-same { border-top: .6px dotted rgba(43,33,25,.35); }
+:root[data-look="priestley"] .dv-res:active { background: var(--you); }
+:root[data-look="priestley"] .dv-res-w { font-size: 20px; }
+:root[data-look="priestley"] .dv-res-l { color: var(--muted); letter-spacing: .14em; }
+:root[data-look="priestley"] .dv-res-g { font-size: 13.5px; color: var(--muted); }

@@ -1,0 +1,59 @@
+/* The four divisions: layout only. Each look's materials are in looks.css ("DIVISIONS").
+   The map (#map) never moves; pages lie over it. Every bottom-anchored fixed layer reaches
+   down by --vgap (installed iOS app; see index.html). */
+
+.dv-page, .dv-strip, .dv-nav { display: none; }
+.app[data-div] .dv-page:not([hidden]) {
+  display: flex; flex-direction: column; position: fixed; z-index: 7; pointer-events: auto;
+  left: 10px; right: 10px; top: calc(env(safe-area-inset-top) + 10px);
+  bottom: calc(10px + env(safe-area-inset-bottom) - var(--vgap, 0px));
+  box-sizing: border-box; overflow: hidden;
+  transition: transform .32s var(--ease, ease), visibility 0s;
+}
+/* swapped: the page slides off; its strip waits above the nav row */
+.app[data-swap="1"] .dv-page:not([hidden]) {
+  transform: translateY(calc(100% + 40px)); visibility: hidden;
+  transition: transform .32s var(--ease, ease), visibility 0s .32s;
+}
+.dv-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+  padding: 16px 20px 84px; display: flex; flex-direction: column; gap: 10px; }
+.dv-head { display: flex; align-items: center; min-height: 28px; }
+.dv-head > .sc:first-child { flex: 1 1 auto; }
+
+.app[data-div] .dv-strip:not([hidden]) {
+  display: flex; flex-direction: column; gap: 6px; position: fixed; z-index: 7; pointer-events: auto;
+  left: 10px; right: 10px; bottom: calc(86px + env(safe-area-inset-bottom) - var(--vgap, 0px));
+  max-height: 32vh; overflow: hidden; text-align: left; padding: 12px 18px; box-sizing: border-box;
+  animation: dv-rise .32s var(--ease, ease);
+}
+@keyframes dv-rise { from { transform: translateY(30px); opacity: 0; } }
+
+.app[data-div] .dv-nav:not([hidden]) {
+  display: flex; gap: 6px; align-items: center; position: fixed; z-index: 8; pointer-events: auto;
+  left: 16px; bottom: calc(16px + env(safe-area-inset-bottom) - var(--vgap, 0px)); height: 58px;
+}
+.dv-nav-btn { width: 44px; height: 44px; padding: 0; display: grid; place-items: center; cursor: pointer; }
+.dv-nav-btn[hidden] { display: none; }
+.dv-nav-btn:disabled { opacity: .35; cursor: default; }
+
+/* while the divisions run, the old dock (search bar, nav pair) and home buttons are gone:
+   Search is a division and the nav is .dv-nav */
+.app[data-div] .dock, .app[data-div] .dock-fade, .app[data-div] #hint, .app[data-div] .lens { display: none !important; }
+/* a page covers the map: the explore layers under it stay put but out of the way */
+.app[data-div="Learn"]:not([data-swap="1"]) :is(.content, .callout, .leader, .trace-cap, .wander-note, .minihead),
+.app[data-div="Search"]:not([data-swap="1"]) :is(.content, .callout, .leader, .trace-cap, .wander-note, .minihead),
+.app[data-div="Saved"]:not([data-swap="1"]) :is(.content, .callout, .leader, .trace-cap, .wander-note, .minihead),
+.app[data-div]:not([data-div="Explore"]) .topbar { visibility: hidden; }
+/* swapped: the callout and the sheet keep clear of the strip */
+.app[data-swap="1"] .callout { bottom: calc(10px + var(--dv-floor, 0px)) !important; }
+
+/* Search */
+.dv-q { display: flex; padding: 6px 0; }
+.dv-q input { flex: 1 1 auto; min-width: 0; font: inherit; font-size: 24px; border: 0; background: transparent; color: inherit; outline: none; padding: 0; }
+.dv-q input::-webkit-search-cancel-button { display: none; }
+.dv-list { display: flex; flex-direction: column; }
+.dv-res { display: flex; flex-direction: column; gap: 2px; text-align: left; padding: 10px 0; min-height: 56px; border: 0; background: none; font: inherit; color: inherit; cursor: pointer; }
+.dv-res-head { display: flex; align-items: baseline; gap: 8px; }
+.dv-same { min-height: 40px; padding-top: 4px; }
+/* Explore with no word open: nothing below the map */
+.app[data-div][data-sheet="home"] .content { display: none; }
