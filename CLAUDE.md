@@ -60,8 +60,8 @@ new pages; reader.js/reader.css are no longer loaded. `scripts/build-division-in
 `graph/sorted4.bin` (Search), `graph/forms/` (FR/DE inflections → map points) and `graph/langmask.bin`
 (Explore's language line) from served files: re-run after the layout or the reader build.
 
-**Reader (French / German), now Learn's engine.** `reader.js` + `reader.css`, opened from the menu or the home
-buttons (❦ Lire / ❦ Lesen). **The reader and the map share one set of dictionary entries** (Nov 2026):
+**Reader data (French / German), Learn's engine.** The reader's engine now lives in `learn.js` (reader.js /
+reader.css are deleted); its data is unchanged. **The reader and the map share one set of dictionary entries** (Nov 2026):
 `build-lexeme-graph.js` writes `g/lex-<fr|de>.jsonl` (every FR/DE entry with its map key) and
 `g/forms-<lc>.json` (inflected form → lemmas, from `extract-kaikki.js` with FORMS=1); the layout writes
 `g/keys.json` and a build stamp (`graph/info.json` `build`); `python3 scripts/build-reader.py [fr|de|all]`
@@ -79,7 +79,10 @@ normalised. Quotation pool: `vendor-data/reader-pool-<lc>.jsonl` (`build-reader.
 dumps, or `pool-from-served`). Rebuild order after the graph: layout → `build-reader.py` → bump `V` in
 reader.js. `test/reader-map.test.js` (in `npm test`) checks the two still agree. English cognates are
 still carried over by title from the previous `reader/<lc>/lex.json` (or `READER_OLD_LEX`); graph-derived ones are next.
-Author list = `CANON` in the script. Progress is per-device localStorage `carta.read.<lc>` (v2), keyed
+Translated excerpts: `python3 scripts/add-translated-quotes.py <dump dir> [fr|de|all]` adds the English
+edition's sourced, translated quotations (kaikki-French/German dumps) on top of a build, resolved against the
+served dictionary; run it after `build-reader.py`, then `node scripts/build-examples-index.js` (word-card
+Examples, `graph/ex/`) and bump `V` in learn.js. Author list = `CANON` in the script. Progress is per-device localStorage `carta.read.<lc>` (v2), keyed
 by entry (title + etymology number for homographs).
 
 Reader behaviour worth knowing before changing it: tapped words go into `learn`
@@ -101,7 +104,8 @@ Also: `words/<xx>.json` — 581 shards, ~222,600 entries (definitions, IPA,
 etymology text, synonyms; fields documented in `scripts/word.js`).
 Breakdown tiles: Wiktionary parts (`wp`, else parsed prose) → MorphoLex `b` →
 heuristic engine (`engine.js` + `data.js`) as last resort.
-`doublets.json` (repo root) = the doublet-hunt pool. Merriam-Webster, the
+The doublet hunt, "Somewhere else", the Sense/Doublets lenses and the home buttons were retired (Nov 2026,
+PLAN-DIVISIONS.md "Cut"); a tapped doublet draws its fork. Merriam-Webster, the
 multi-source `trees/`, hand-authored `family/<root>.json` files and the curator
 editor were retired (Oct 2026) — don't reintroduce parallel sources.
 
