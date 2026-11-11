@@ -24,8 +24,8 @@ Open for Will (not decided in PARITY.md):
 1. (Nov 10, Will: import them.) 239,467 English dictionary words with an etymology got entry pages
    (`import-kaikki.js --words`, list = single words, not names/phrases, not Internet/neologism/
    nonce/slang-only; vulgar, archaic, obsolete, rare and dialect words included). `words/` now
-   462,047 entries; map 976k points, 776k drawn. Vulgar no longer hidden. Pending: slang-only
-   words (~180, e.g. inspo, crappery) — Will is deciding. Was: English points = the ~240k words that have a page in `words/` (+10k other English entries kept
+   462,047 entries; map 976k points, 776k drawn. Vulgar no longer hidden. Slang-only words
+   stay out (Will: "definitely cut the slang"). Was: English points = the ~240k words that have a page in `words/` (+10k other English entries kept
    because something descends from them). 671k other English dictionary entries are left off the map.
 2. (Accepted by Will, Nov 10.) Depth target missed: 94.8% of the 8,511 starting words reach an ancestor at least as old as before
    (target 97%). The ~440 that don't: names whose dictionary page has no etymology (charleston,
