@@ -1,25 +1,33 @@
 #!/usr/bin/env python3
 """
-build-reader.py — the French / German reader's data, all from Wiktionary.
+build-reader.py — the French / German reader's data. The reader and the map share ONE set of
+dictionary entries: scripts/build-lexeme-graph.js writes g/lex-<lc>.jsonl (every French/German entry,
+with its map key) and g/forms-<lc>.json (inflected form → lemmas); scripts/build-graph-layout.js
+writes g/keys.json (map index → key) and the build stamp. Words are resolved by
+scripts/reader_resolve.py (homographs, inflections, old spellings, contractions, names).
 
-Inputs (vendor-data/, gitignored):
-  kaikki-French.jsonl.gz, kaikki-German.jsonl.gz   English-Wiktionary entries for FR/DE words
-                                                   (English glosses, forms, etymology, a few
-                                                   translated quotations)
-  frwikt-Francais.jsonl.gz, dewikt-Deutsch.jsonl.gz French/German-Wiktionary editions
-                                                   (hundreds of thousands of attributed quotations)
-  kaikki-etym.jsonl, kaikki-etym-<fr|de>.jsonl      etymology chains (scripts/import-kaikki-etym.js)
+Quotation pool (vendor-data/reader-pool-<lc>.jsonl, one {t, r, en?} per line) comes from the
+dictionaries' quotations:
+  python3 scripts/build-reader.py pool [fr|de|all]     from vendor-data dumps (kaikki-<Lang>.jsonl.gz:
+        English-Wiktionary examples with translations; frwikt-Francais / dewikt-Deutsch .jsonl.gz:
+        the French/German editions' attributed quotations), canon authors + post-1850 books
+  python3 scripts/build-reader.py pool-from-served [fr|de|all]   the quotations already in reader/
+  python3 scripts/build-reader.py [fr|de|all]          build reader/<lc>/ from the pool
 
 Output (served): reader/<fr|de>/
-  lex.json      lemma table: [[lemma, gloss, pos, zipf*10, cognate|"", transparent 0/1, mapKey|""], …]
-  forms/<k>.json  surface form (lowercase) → lemma id, sharded by first letter (for pasted text)
-  q/<band>.json  quotations by difficulty band: {t, r (ref), a (author), y, en?, w:[[start, end, lemmaId]…]}
-  index.json    counts, bands, authors
-
-  python3 scripts/build-reader.py [fr|de|all]
+  lex.json      [[title, gloss, pos, zipf*10, cognate|"", transparent 0/1, map index|-1, flags, ety?], …]
+                flags: 1 = a name (person/place), 2 = on the map but not drawn (no history yet);
+                ety: the etymology number where several entries share the title (progress key)
+  forms/<k>.json  surface (case-sensitive) → [entry ids, best first], for pasted text; sharded by
+                first letter of the folded form
+  q/<band>.json   quotations by difficulty: {t, r, a, y?, c?, en?, h, w: [[start, length, id, alt?], …]}
+                id -1 = not in the dictionary, -2 = taken for a name (capitalised, unknown)
+  index.json    counts, bands, authors, build (must equal graph/info.json build)
 """
 import gzip, json, os, re, sys, unicodedata, collections, math
 from wordfreq import zipf_frequency
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from reader_resolve import Resolver, WORD, norm
 
 ROOT = os.path.join(os.path.dirname(__file__), "..")
 V = os.path.join(ROOT, "vendor-data")
@@ -114,217 +122,174 @@ PRESS = re.compile(r"journal|magazine|AFP|Reuters|Wikipedia|Le Monde|Libération
                    r"Télégramme|Die Zeit|Spiegel|Süddeutsche|FAZ|taz|Welt|Tagesschau|Wortschatz|20 minutes|Mediapart|"
                    r"Huffington|Le Point|L’Express|Le Parisien|Courrier|Stern|Focus|Bild|ZEIT", re.I)
 
-WORD = re.compile(r"[A-Za-zÀ-ÖØ-öø-ÿŒœÆæß]+(?:[-’'][A-Za-zÀ-ÖØ-öø-ÿŒœÆæß]+)*")
-ELIDE = re.compile(r"^(l|d|j|m|n|s|t|c|qu|jusqu|lorsqu|puisqu|quoiqu)[’']", re.I)
-
-def tokens(text, lc):
-    for m in WORD.finditer(text):
-        s, e, w = m.start(), m.end(), m.group(0)
-        if lc == "fr":
-            mm = ELIDE.match(w)
-            if mm and len(w) > mm.end():
-                yield s, s + mm.end(), mm.group(1).lower() + ("e" if mm.group(1).lower() in "ldjmnstc" else "e")
-                s = s + mm.end(); w = w[mm.end():]
-        yield s, e, w
 
 def year_of(ref):
     ys = [int(y) for y in re.findall(r"\b(1[0-9]{3}|20[0-2][0-9])\b", ref or "")]
     return min(ys) if ys else None
 
-def build(lc):
+def pool_path(lc): return os.path.join(V, f"reader-pool-{lc}.jsonl")
+
+def collect_pool(lc):
+    """candidate quotations from the dictionary dumps (canon authors, and newer books)"""
     LN, edition = LANGS[lc]
-    print(f"== {LN}", flush=True)
-    # ---- lexicon from English Wiktionary
-    lem = {}            # lemma -> {g, p}
-    forms = {}          # folded-lower form -> lemma
-    tquotes = []        # English-Wiktionary quotations with translations
+    CRE = canon_re(lc)
+    out = []
     for d in jsonl_gz(os.path.join(V, f"kaikki-{LN}.jsonl.gz")):
-        w, pos = d.get("word"), d.get("pos")
-        if not w or pos in ("name", "character", "symbol", "suffix", "prefix", "infix", "phrase", "proverb"): continue
-        real = [s for s in d.get("senses", []) if not s.get("form_of") and "form-of" not in s.get("tags", [])]
-        for s in d.get("senses", []):
-            for fo in s.get("form_of") or []:
-                if fo.get("word"): forms.setdefault(w.lower(), fo["word"])
-        if real:
-            g = next((gg for s in real for gg in (s.get("glosses") or [])[-1:]), "")
-            g = re.sub(r"\s*\([^)]*\)", "", g).strip()[:70]
-            if w not in lem or (lem[w]["p"] in ("name",) and pos != "name"):
-                lem.setdefault(w, {"g": g, "p": pos})
-            for f in d.get("forms") or []:
-                ff = f.get("form", ""); tg = f.get("tags") or []
-                if not ff or "table-tags" in tg or "inflection-template" in tg or "romanization" in tg or " " in ff: continue
-                forms.setdefault(ff.lower(), w)
-            forms.setdefault(w.lower(), w)
         for s in d.get("senses", []):
             for e in s.get("examples") or []:
-                if e.get("ref") and (e.get("english") or e.get("translation")) and e.get("text"):
-                    tquotes.append((e["text"], e["ref"], e.get("english") or e.get("translation")))
-    print(f"lemmas {len(lem)}, forms {len(forms)}, translated quotations {len(tquotes)}", flush=True)
-
-    # ---- English cognates: (a) English entries citing this word as cognate, (b) English words
-    # borrowed from it, (c) shared ancestor in the etymology chains
-    ANC_LANGS = ("Old French|Middle French|Anglo-Norman|Late Latin|Medieval Latin|New Latin|Vulgar Latin|Latin|"
-                 "Ancient Greek|Proto-Germanic|Proto-West Germanic|Old High German|Middle High German|Old English|"
-                 "Middle English|Frankish|Old Norse|Proto-Indo-European|Middle Low German|Old Saxon|Italian|Spanish")
-    PROSE = re.compile(r"\b(" + ANC_LANGS + r") (\*?[^\s,.;()“”]+)")
-    def K(l, t): return (l, fold(t).lstrip("*"))
-    chains = {}
-    with open(os.path.join(V, f"kaikki-etym-{lc}.jsonl"), encoding="utf-8") as f:
-        for line in f:
-            r = json.loads(line)
-            ch = [(s["l"], s["t"]) for s in r.get("ch", [])]
-            if not ch and r.get("e"):
-                ch = [(m.group(1), m.group(2)) for m in PROSE.finditer(r["e"])][:5]
-            chains[r["w"]] = ch
-    cand = collections.defaultdict(set)  # lemma -> english words
-    anc = collections.defaultdict(set)   # (lang, folded term) -> english words
-    enl = {}                             # english word -> set of languages in its history
-    with open(os.path.join(V, "kaikki-etym.jsonl"), encoding="utf-8") as f:
-        for line in f:
-            r = json.loads(line); ew = r["w"]
-            if " " in ew or not ew.islower(): continue
-            for c in r.get("cg", []):
-                if c.get("l") == LN: cand[c["t"]].add(ew)
-            ch = [(s["l"], s["t"]) for s in r.get("ch", [])[:7]]
-            if not ch and r.get("e"): ch = [(m.group(1), m.group(2)) for m in PROSE.finditer(r["e"])][:6]
-            enl[ew] = {l for l, _ in ch}
-            for l, t in ch:
-                if l == LN: cand[t].add(ew)
-                anc[K(l, t)].add(ew)
-    ROOTS = {"fr": {"Old French", "Middle French", "Anglo-Norman", "Latin", "Late Latin", "Medieval Latin", "New Latin", "French"},
-             "de": {"Proto-Germanic", "Proto-West Germanic", "Old English", "German", "Middle High German", "Old High German", "Middle Dutch", "Dutch", "Middle Low German"}}[lc]
-    def zen(w): return zipf_frequency(w, "en")
-    lex = []; lid = {}
-    def cognate(w, depth=0):
-        cs = set(cand.get(w, ()))
-        for l, t in chains.get(w, [])[:5]:
-            if l == "English": cs.add(t)
-            if l == LN and depth == 0 and t != w:  # derived within the language (photo < photographie): its cognate
-                c2 = cognate(t, 1)[0]
-                if c2: cs.add(c2)
-            if l not in ROOTS and l != LN: continue  # cousins at the Latin / Germanic level, not PIE
-            if len(fold(t).strip("*-")) < 3 or re.match(r"^\*?-|-$", t): continue  # affixes link everything
-            a2 = anc.get(K(l, t), set())
-            if len(a2) <= 60: cs |= {e for e in a2 if sim(w, e) >= 0.4 or e in cand.get(w, ())}
-        fw = fold(w)
-        if len(fw) >= 4 and fw in enl and zen(fw) >= 3 and (enl[fw] & ROOTS): cs.add(fw)   # same spelling, same stock
-        best, bs = "", 0
-        for e in cs:
-            if zen(e) < 3.0: continue
-            sc = sim(w, e) + 0.05 * min(zen(e), 6)
-            if sc > bs: best, bs = e, sc
-        # transparent = looks alike AND means the same (the English word, or its stem, is in the gloss)
-        g = fold(lem.get(w, {}).get("g", ""))
-        stem = fold(best)[: max(4, len(best) - 3)]
-        same = bool(best) and (re.search(r"\b" + re.escape(stem), g) is not None)
-        if best and not same and sim(w, best) >= 0.9 and not g: same = True
-        if best and fold(w) == fold(best) and not same: best = ""      # same spelling, other meaning: a false friend
-        return best, (1 if best and same and sim(w, best) >= 0.55 else 0)
-    for w, v in lem.items():
-        if " " in w or (len(w) < 2 and not w.islower()) or (w.isupper() and len(w) > 1): continue
-        z = zipf_frequency(w, lc)
-        if z < 1.5 and w.lower() not in forms: continue
-        best, transparent = cognate(w)
-        lid[w] = len(lex)
-        lex.append([w, v["g"], v["p"], round(z * 10), best, transparent, ""])
-    print(f"lex {len(lex)}; with English cognate {sum(1 for x in lex if x[4])}, transparent {sum(x[5] for x in lex)}", flush=True)
-
-    def lemma_of(f):
-        # a form can point at another form (déployée → déployé → déployer): follow a few hops
-        l = forms.get(f)
-        for _ in range(3):
-            if l is None or l in lid: return l
-            l = forms.get(l.lower()) if forms.get(l.lower()) != l else None
-        return l if l in lid else None
-    def lookup(tok):
-        for t in (tok, tok.lower(), tok[:1].upper() + tok[1:].lower()):
-            if t in lid: return lid[t]
-            l = lemma_of(t.lower())
-            if l: return lid[l]
-        return -1
-
-    # ---- quotations: translated ones from English Wiktionary + canon authors from the native edition
-    CRE = canon_re(lc)
-    pool = []
-    # translated quotations from English Wiktionary: only from the canon (the rest is song
-    # lyrics, ad copy and newspaper filler)
-    for t, ref, en in tquotes:
-        if CRE.search(ref[:80]): pool.append((t, ref, en))
-    n_native = 0; by_author = collections.Counter()
+                ref = e.get("ref") or ""; en = e.get("english") or e.get("translation")
+                if ref and en and e.get("text") and CRE.search(ref[:80]): out.append({"t": e["text"], "r": ref, "en": en})
     for d in jsonl_gz(os.path.join(V, edition)):
         for s in d.get("senses", []):
             for e in s.get("examples") or []:
                 ref = e.get("ref") or ""
                 if not ref or PRESS.search(ref): continue
-                head = ref[:80]
-                m = CRE.search(head)
-                if not m:
-                    # newer books are welcome too (plainer prose); periodicals, reference works and the web aren't
+                if not CRE.search(ref[:80]):
                     if NOTBOOK.search(ref) or not BOOKISH[lc].search(ref): continue
                     yy = year_of(ref)
                     if not yy or yy < 1850: continue
-                pool.append((e.get("text", ""), ref, e.get("translation")))
-                n_native += 1
-    print(f"native canon quotations {n_native}", flush=True)
-    seen = set(); out = []
-    for t, ref, en in pool:
+                q = {"t": e.get("text", ""), "r": ref}
+                if e.get("translation"): q["en"] = e["translation"]
+                out.append(q)
+    with open(pool_path(lc), "w", encoding="utf-8") as f:
+        for q in out: f.write(json.dumps(q, ensure_ascii=False) + "\n")
+    print(f"pool {lc}: {len(out)} candidate quotations", flush=True)
+
+def pool_from_served(lc):
+    D = os.path.join(ROOT, "reader", lc, "q"); n = 0
+    with open(pool_path(lc), "w", encoding="utf-8") as f:
+        for fn in sorted(os.listdir(D)):
+            for q in json.load(open(os.path.join(D, fn), encoding="utf-8")):
+                o = {"t": q["t"], "r": q["r"]}
+                if q.get("en"): o["en"] = q["en"]
+                f.write(json.dumps(o, ensure_ascii=False) + "\n"); n += 1
+    print(f"pool {lc}: {n} quotations taken from reader/{lc}", flush=True)
+
+def build(lc):
+    print(f"== {LANGS[lc][0]}", flush=True)
+    R = Resolver(lc, ROOT)
+    if R.over_missing: print("override words with no matching entry:", R.over_missing, flush=True)
+    # the map: key → index, and the build stamp the client checks against graph/info.json
+    keys = json.load(open(os.path.join(ROOT, "g", "keys.json"), encoding="utf-8"))
+    kix = {k: i for i, k in enumerate(keys)}
+    build_id = open(os.path.join(ROOT, "g", "build.txt")).read().strip()
+    info = json.load(open(os.path.join(ROOT, "graph", "info.json"), encoding="utf-8"))
+    assert info.get("build") == build_id, "graph/ and g/ come from different layout runs"
+    labels = json.load(open(os.path.join(ROOT, "graph", "labels.json"), encoding="utf-8"))
+    quiet = open(os.path.join(ROOT, "graph", "quiet.bin"), "rb").read()
+    # English cognates: carried over from the previous reader build by title until the graph supplies them
+    old = {}
+    # (default: the reader's own previous lex.json, read before it is replaced)
+    oldp = os.environ.get("READER_OLD_LEX", os.path.join(ROOT, "reader", "<lc>", "lex.json")).replace("<lc>", lc)
+    if oldp and os.path.exists(oldp):
+        for r in json.load(open(oldp, encoding="utf-8")):
+            if r[4] and r[0] not in old: old[r[0]] = (r[4], r[5])
+
+    # ---- quotations
+    CRE = canon_re(lc)
+    seen = set(); out = []; by_author = collections.Counter(); used = collections.Counter()
+    for line in open(pool_path(lc), encoding="utf-8"):
+        p = json.loads(line); t, ref, en = p.get("t"), p.get("r") or "", p.get("en")
         t = re.sub(r"\s+", " ", (t or "")).strip()
-        if t.startswith("„") and t.endswith("“") and t.count("„") == 1: t = t[1:-1].strip()  # de.wiktionary wraps every quotation
+        if t.startswith("„") and t.endswith("“") and t.count("„") == 1: t = t[1:-1].strip()
         if not t or t in seen: continue
         seen.add(t)
-        toks = list(tokens(t, lc))
+        toks = list(R.tokens(t))
         if not (6 <= len(toks) <= 45): continue
-        ws = []; unk = 0
-        for s, e, w in toks:
-            i = lookup(w)
-            ws.append([s, e, i])
-            if i < 0: unk += 1
-        if unk > max(2, len(toks) // 6): continue  # too many words we can't gloss
+        ws = []; unk = 0; hard = 0; counted = 0
+        for s, e, ids in toks:
+            raw = t[s:e]
+            if ids is None:
+                # unknown: a capitalised word not at the start of a sentence is taken for a name
+                if raw[:1].isupper() and s > 0 and not re.search(r"[.!?…:«»„“\"—]\s*$", t[:s]): ws.append([s, e - s, -2]); continue
+                if raw.lower() in ("t",): continue
+                ws.append([s, e - s, -1]); unk += 1; hard += 1; counted += 1; continue
+            E = R.E[ids[0]]
+            if E.get("nm"): ws.append([s, e - s, ids[0]]); continue           # names don't count toward difficulty
+            row = [s, e - s, ids[0]] + ([ids[1]] if len(ids) > 1 else [])
+            ws.append(row); used[ids[0]] += 1
+            if len(ids) > 1: used[ids[1]] += 0
+            counted += 1
+            z = R.z(E["t"]); tr = old.get(E["t"], ("", 0))[1]
+            if not (z >= 5.0 or tr): hard += 1
+        if counted == 0 or unk > max(2, counted // 6): continue
         m = CRE.search(ref[:80])
-        canon = 1 if m else 0
         if m: author = m.group(1)
         else:
             author = re.split(r"\s*[,:(]\s*", re.sub(r"^\W*\d{4},?\s*", "", ref))[0].strip()
-            if BOOKISH[lc].search(author) or NOTBOOK.search(author): continue  # a publisher, not a person
+            if BOOKISH[lc].search(author) or NOTBOOK.search(author): continue
             if not (3 <= len(author) <= 40) or len(author.split()) > 5 or not re.match(r"^[A-ZÀ-Ý]", author) or re.search(r"\d", author): continue
+        q = {"t": t, "r": ref[:110], "a": author, "w": ws, "h": round(hard / counted, 2)}
         y = year_of(ref)
-        # baseline difficulty: share of words outside the 1,500 most common that aren't transparent cognates
-        hard = 0
-        for s, e, i in ws:
-            if i < 0: hard += 1; continue
-            L = lex[i]
-            if L[3] >= 50 or L[5]: continue
-            hard += 1
-        q = {"t": t, "r": ref[:110], "a": author, "w": [i for _, _, i in ws], "h": round(hard / len(ws), 2)}
         if y: q["y"] = y
-        if canon: q["c"] = 1
+        if m: q["c"] = 1
         if en: q["en"] = re.sub(r"\s+", " ", en).strip()
         out.append(q); by_author[author] += 1
-    # keep author variety: at most 300 per author, preferring the easier and the translated
     out.sort(key=lambda q: (q["a"], 0 if q.get("en") else 1, q["h"]))
     kept, cnt = [], collections.Counter()
     for q in out:
-        cap = 300 if q.get("c") else 40   # many newer authors, a handful each
+        cap = 300 if q.get("c") else 40
         if cnt[q["a"]] >= cap and q["a"] not in ("Michel Houellebecq", "Jacques Derrida"): continue
         cnt[q["a"]] += 1; kept.append(q)
     kept.sort(key=lambda q: q["h"])
     print(f"quotations kept {len(kept)} from {len(out)}; authors {len(cnt)}", flush=True)
+
+    # ---- which entries the phone gets: every one used in a quotation, its runner-ups, and the
+    # readings of common words (wordfreq zipf ≥ 2.5) for pasted text
+    need = set()
+    for q in kept:
+        for x in q["w"]:
+            for i in x[2:]:
+                if i >= 0: need.add(i)
+    surfaces = set()
+    for q in kept:
+        for x in q["w"]: surfaces.add(q["t"][x[0]:x[0] + x[1]])
+    for i, e in enumerate(R.E):
+        if R.z(e["t"]) >= 2.5: surfaces.add(e["t"])
+    for f in R.forms:
+        if R.z(f) >= 2.5: surfaces.add(f)
+    formmap = {}
+    for f in surfaces:
+        n = norm(f).rstrip("'")
+        r = R.ids(n, False)
+        if r: formmap[n] = r; need.update(r)
+        if n[:1].isupper():
+            r2 = R.ids(n, True)
+            if r2 and r2 != formmap.get(n): formmap["^" + n] = r2; need.update(r2)
+    order = sorted(need, key=lambda i: -R.z(R.E[i]["t"]))
+    lid = {i: n for n, i in enumerate(order)}
+    lex = []; onmap = 0; bad = 0
+    for i in order:
+        e = R.E[i]
+        g = "; ".join(dict.fromkeys(re.sub(r"\s*\([^)]*\)", "", x).strip()[:60] for x in (e.get("g") or [])[:3]))
+        mi = kix.get(e.get("k"), -1)
+        flags = (1 if e.get("nm") else 0)
+        if mi >= 0:
+            onmap += 1
+            if quiet[mi >> 3] & (1 << (mi & 7)): flags |= 2
+            # every row lands on a point with its own spelling
+            if labels[mi] not in (e["t"], e.get("h")): bad += 1
+        cg, tr = old.get(e["t"], ("", 0))
+        row = [e["t"], g, ",".join(e.get("p") or []), round(R.z(e["t"]) * 10), cg, tr, mi, flags]
+        if len(R.by_title.get(e["t"], [])) > 1: row.append(e.get("n") or str(i))   # homographs: progress per entry
+        lex.append(row)
+    assert bad == 0, f"{bad} lexicon rows point at a map point with another spelling"
+    print(f"lex {len(lex)} entries, {onmap} on the map; forms {len(formmap)}", flush=True)
+    for q in kept:
+        q["w"] = [x[:2] + [lid[i] if i >= 0 else i for i in x[2:]] for x in q["w"]]
+    formmap = {k: [lid[i] for i in v] for k, v in formmap.items()}
 
     # ---- write
     D = os.path.join(ROOT, "reader", lc)
     if os.path.isdir(D):
         import shutil; shutil.rmtree(D)
     os.makedirs(os.path.join(D, "q")); os.makedirs(os.path.join(D, "forms"))
-    used = set(i for q in kept for i in q["w"] if i >= 0)
     with open(os.path.join(D, "lex.json"), "w", encoding="utf-8") as f: json.dump(lex, f, ensure_ascii=False, separators=(",", ":"))
     shards = collections.defaultdict(dict)
-    for form in forms:
-        l = lemma_of(form)
-        if l and form != l.lower() and (lex[lid[l]][3] >= 15 or lid[l] in used):
-            k = fold(form)[:1]
-            if not ("a" <= k <= "z"): k = "_"
-            shards[k][form] = lid[l]
-    for w in lid: shards[(fold(w)[:1] if "a" <= fold(w)[:1] <= "z" else "_")][w.lower()] = lid[w]
+    for form, ids in formmap.items():
+        k = fold(form.lstrip("^"))[:1]
+        if not ("a" <= k <= "z"): k = "_"
+        shards[k][form] = ids
     for k, m in shards.items():
         with open(os.path.join(D, "forms", k + ".json"), "w", encoding="utf-8") as f: json.dump(m, f, ensure_ascii=False, separators=(",", ":"))
     BAND = 400
@@ -338,12 +303,14 @@ def build(lc):
         for q in kept[bi * BAND:(bi + 1) * BAND]:
             if not ab[q["a"]] or ab[q["a"]][-1] != bi: ab[q["a"]].append(bi)
     canon_authors = sorted({q["a"] for q in kept if q.get("c")})
-    idx = {"lang": lc, "lex": len(lex), "quotes": len(kept), "bands": bands, "ab": ab, "canon": canon_authors,
+    idx = {"lang": lc, "build": build_id, "lex": len(lex), "quotes": len(kept), "bands": bands, "ab": ab, "canon": canon_authors,
            "authors": [x for x in cnt.most_common() if x[0] in set(canon_authors)], "formShards": sorted(shards)}
     with open(os.path.join(D, "index.json"), "w", encoding="utf-8") as f: json.dump(idx, f, ensure_ascii=False, separators=(",", ":"))
-    print(f"wrote reader/{lc}: {len(bands)} bands; top authors {cnt.most_common(12)}", flush=True)
+    print(f"wrote reader/{lc}: {len(bands)} bands; top authors {cnt.most_common(8)}", flush=True)
 
 if __name__ == "__main__":
-    which = sys.argv[1] if len(sys.argv) > 1 else "all"
+    a = sys.argv[1:]
+    mode = a[0] if a and a[0] in ("pool", "pool-from-served") else "build"
+    which = (a[1] if mode != "build" and len(a) > 1 else a[0] if mode == "build" and a else "all")
     for lc in (["fr", "de"] if which == "all" else [which]):
-        build(lc)
+        {"pool": collect_pool, "pool-from-served": pool_from_served, "build": build}[mode](lc)

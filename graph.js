@@ -1085,6 +1085,7 @@
   let traceTarget = -1;
   function chainEnd(i) { return traceTarget >= 0 ? traceTarget : i; }
   RM.loaded = function () { return !!(G && B.pos); };
+  RM.build = function () { return G && G.info.build; };   // the reader's lexicon stores indices from one build
   RM.setExtra = function (pairs) { // [[a, b, [r,g,b]]…] drawn with the focus (lens overlays)
     if (!focus) return;
     focus = buildFocus(focus.idx, pairs);

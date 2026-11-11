@@ -111,10 +111,17 @@ const entryIdx = new Map();  // fam|title|n → i
 // hidden until visited: Internet slang, neologisms, nonce words, slang (Will, Nov 2026: vulgar words are fine)
 const QUIET_NOW = new Set(["slang", "Internet", "neologism", "nonce-word"]);
 let records = 0;
+// the reader's languages: inflected form → lemma titles (FORMS=1 extraction), for g/lex-<lc>
+const READER = { fr: { forms: new Map() }, de: { forms: new Map() } };
 let headwordsG = new Set();
 const formOf = new Map();   // English inflected form → lemma (FORMS=1 extraction), used only for words/ headwords
 function addRecord(r) {
-  if (r.fo) { if (r.l === "en" && !formOf.has(r.w)) formOf.set(nfc(r.w), nfc(r.fo)); return; }
+  if (r.fo) {
+    const fo = [].concat(r.fo);
+    if (r.l === "en") { if (!formOf.has(r.w)) formOf.set(nfc(r.w), nfc(fo[0])); }
+    else if (READER[r.l]) { const m = READER[r.l].forms; const w = nfc(r.w); let x = m.get(w); if (!x) m.set(w, (x = new Set())); for (const f of fo) x.add(nfc(f)); }
+    if (!r.g) return;   // a page that is only a form
+  }
   const fam = famOf(r.l);
   const title = nfc(r.w);
   const ek = fam + "|" + title + "|" + (r.n || "");
@@ -132,7 +139,9 @@ function addRecord(r) {
   if (!x.g && r.g) x.g = r.g;
   if (!x.ipa && r.ipa) x.ipa = r.ipa;
   if (!x.h && r.h) x.h = nfc(r.h);
-  if (r.q) { const qs = r.q.filter((t) => QUIET_NOW.has(t)); x.qn = (x.qn || 0) + (qs.length ? 1 : 0); }
+  if (r.q) { const qs = r.q.filter((t) => QUIET_NOW.has(t)); x.qn = (x.qn || 0) + (qs.length ? 1 : 0); if (READER[r.l]) { x.tags = x.tags || new Set(); for (const t of r.q) x.tags.add(t); } }
+  if (READER[r.l] && r.g && !x.gs) x.gs = [];
+  if (READER[r.l] && r.g && x.gs.length < 4 && !x.gs.includes(r.g)) x.gs.push(r.g);
   x.pn = (x.pn || 0) + 1;
   for (const id of r.id || []) { byId.set(fam + "|" + title + "|" + id, i); }
   if (r.ds) x.ds = x.ds ? x.ds.concat(r.ds) : r.ds;
@@ -143,7 +152,7 @@ function addRecord(r) {
     if (r.l === "en") { const d = doublets(r); if (d.length) x.dbl = (x.dbl || []).concat(d); const c = cognates(r); if (c.length && !x.cog) x.cog = c.slice(0, 12); }
   }
   if (!gotRel && r.x && !x.rels) x.prose = r.x;
-  if (!gotRel && r.ao && !x.ao) x.ao = nfc(r.ao);
+  if (r.ao && !x.ao) x.ao = nfc(r.ao);
   x.lcode = r.l;
 }
 // ---- prose fallback (etym-parse.js, etym-derive.js) for entries whose templates gave nothing ----
@@ -152,7 +161,8 @@ function proseRelations(i, langNames) {
   const x = N[i], self = langName(x.lcode);
   const o = P.parse(x.t, x.prose);
   const rel = [];
-  const ref = (st) => { const r = { ln: st.l || self, t: st.t }; if (st.g) r.g = st.g; return r; };
+  const GRAM = /^(?:plural|singular|feminine|masculine|neuter|genitive|dative|accusative|nominative|ablative|oblique|diminutive|infinitive)\s+/i;
+  const ref = (st) => { const r = { ln: st.l || self, t: String(st.t).replace(GRAM, "") }; if (st.g) r.g = st.g; return r; };
   const real = (st) => st && typeof st.t === "string" && P.fold(st.t).replace(/[*\-–‐\s()]/g, "").length > 0;
   for (const p of o.parts.filter(real)) rel.push({ from: null, to: ref(p), k: "part", src: "prose", inferred: false });
   let cur = null;
@@ -396,20 +406,28 @@ function aliasHeadwords(headwords) {
   return n;
 }
 const hwName = (x) => x.hwk || x.t;
+// a person, place or organisation: only a proper noun, and not a calendar, festival, language or
+// scripture word (Monday, January, Christmas, Purim, Romansh, New Testament keep their points)
+const NAME_KEEP = /day of the week|\bmonth\b|calendar|festival|feast|holiday|celebrat|\blanguage\b|\bdialect\b|\bbible\b|testament|gospel/i;
+const properName = (x) => x.e && x.p && x.p.size === 1 && x.p.has("name") && !NAME_KEEP.test(x.g || (x.gs && x.gs[0]) || "");
 function prune(headwords) {
   const keep = new Uint8Array(N.length);
   const q = [];
-  let enDropped = 0;
+  let enDropped = 0, namesHeld = 0;
   for (let i = 0; i < N.length; i++) {
     const x = N[i], lc = FOUR_FAM[x.f];
     if (!lc) continue;
     // English: points are the words that have an entry in the app (words/); other English entries
     // stay only as ancestors of something kept
     if (lc === "en" && !headwords.has(hwName(x))) { if (x.e) enDropped++; continue; }
+    // names (Toronto, Fiona, CIA) aren't points of their own; they stay only as ancestors (Caesar → Kaiser)
+    if (properName(x)) { namesHeld++; continue; }
     keep[i] = 1; q.push(i);
   }
   while (q.length) { const i = q.pop(); const m = own.get(i); if (m) for (const p of m.keys()) if (!keep[p]) { keep[p] = 1; q.push(p); } }
   let enRescued = 0; for (let i = 0; i < N.length; i++) if (keep[i] && N[i].f === "English" && !headwords.has(hwName(N[i])) && N[i].e) enRescued++;
+  let namesKept = 0; for (let i = 0; i < N.length; i++) if (keep[i] && properName(N[i]) && FOUR_FAM[N[i].f]) namesKept++;
+  log(`names: ${namesHeld} not points of their own, ${namesKept} kept as ancestors`); stat.namesHeld = namesHeld; stat.namesKeptAsAncestors = namesKept;
   return { keep, enDropped: enDropped - enRescued, enRescued };
 }
 
@@ -464,9 +482,12 @@ async function main() {
   const isAff = (t) => /^\*?[-‐]|[-‐]$/.test(t || "");
   const top = (m) => { let b = null, c = -1; if (m) for (const [k, v] of m) if (v > c) { b = k; c = v; } return b; };
   const display = (x) => {
-    if (x.e) return x.f === "English" ? hwName(x) : x.h || x.t;
+    // a headword carrying notes ("point oblique singular or …") is not a label
+    if (x.e) return x.f === "English" ? hwName(x) : x.h && (!/\s/.test(x.h) || /\s/.test(x.t)) ? x.h : x.t;
     let best = x.t, score = -1;
-    for (const [f, c] of x.forms || []) { const marks = (f.normalize("NFD").match(/\p{M}/gu) || []).length + (f.startsWith("*") ? 1 : 0); const s = c * 10 + marks; if (s > score) { best = f; score = s; } }
+    for (const [f, c] of x.forms || []) {
+      if (/\s/.test(f) && !/\s/.test(x.t)) continue;   // a display carrying notes ("general (oblique singular) or …")
+      const marks = (f.normalize("NFD").match(/\p{M}/gu) || []).length + (f.startsWith("*") ? 1 : 0); const s = c * 10 + marks; if (s > score) { best = f; score = s; } }
     return best;
   };
   // English descendants per node (detail panel), as before
@@ -513,6 +534,23 @@ async function main() {
     written++;
   }
   for (const [s, arr] of shards) fs.writeFileSync(path.join(OUT, s + ".json"), "{\n" + arr.join(",\n") + "\n}\n");
+  // the reader's lexicon: every French and German entry, with its map key when it is a point
+  // (scripts/build-reader.py reads these; the map and the reader share one set of entries)
+  for (const lc of Object.keys(READER)) {
+    const fam = FOUR[lc], lines = [];
+    for (let i = 0; i < N.length; i++) {
+      const x = N[i]; if (!x.e || x.f !== fam) continue;
+      const o = { k: keep[i] ? keyOfNode[i] : null, t: x.t, p: [...x.p] };
+      if (x.h) o.h = x.h; if (x.n) o.n = x.n; if (x.gs) o.g = x.gs; if (x.ipa) o.ipa = x.ipa;
+      if (x.tags) o.q = [...x.tags]; if (x.ao) o.ao = x.ao;
+      if (properName(x)) o.nm = 1;
+      lines.push(JSON.stringify(o));
+    }
+    fs.writeFileSync(path.join(OUT, "lex-" + lc + ".jsonl"), lines.join("\n") + "\n");
+    const fm = {}; for (const [f, ls] of READER[lc].forms) fm[f] = [...ls];
+    fs.writeFileSync(path.join(OUT, "forms-" + lc + ".json"), JSON.stringify(fm));
+    log(`reader lexicon ${lc}: ${lines.length} entries, ${READER[lc].forms.size} inflected forms`);
+  }
   const stats = { desc: descStat, fromProse, fromDerive, records, nodes: N.length, written, resolution: stat, bridged, englishEntriesDropped: enDropped, englishEntriesKeptAsAncestors: enRescued, per };
   fs.writeFileSync(path.join(OUT, "stats.json"), JSON.stringify(stats, null, 1));
   log(`wrote ${written} nodes; ${JSON.stringify(per)}`);

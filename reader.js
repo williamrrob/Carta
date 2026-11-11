@@ -7,24 +7,56 @@
 (function () {
   "use strict";
   const LANG = { fr: { name: "French", own: "Français" }, de: { name: "German", own: "Deutsch" } };
-  const V = "4";
+  const V = "5";
   const $ = (id) => document.getElementById(id);
   const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
   // reader controls are cut from the same stuff as the rest of the chrome: each look styles .menu-act
   const btn = (cls, txt) => { const b = el("button", "menu-act " + cls, txt); b.type = "button"; return b; };
   const get = (p) => fetch("reader/" + p + "?v=" + V).then((r) => { if (!r.ok) throw new Error(p); return r.json(); });
 
-  // same tokenizer as scripts/build-reader.py
-  const WORD = /[A-Za-zÀ-ÖØ-öø-ÿŒœÆæß]+(?:[-’'][A-Za-zÀ-ÖØ-öø-ÿŒœÆæß]+)*/g;
-  const ELIDE = /^(l|d|j|m|n|s|t|c|qu|jusqu|lorsqu|puisqu|quoiqu)[’']/i;
-  function tokens(text, lc) {
+  // pasted text: the same word pattern as scripts/reader_resolve.py (quotations come with their
+  // words already resolved at build time; here the forms shards carry the same ranked readings)
+  const LET = "A-Za-zÀ-ÖØ-öø-ÿŒœÆæßſ";
+  const WORD = new RegExp("(?:[" + LET + "]|\\[[" + LET + "]+\\])+(?:[-’'ʼ](?:[" + LET + "]|\\[[" + LET + "]+\\])+)*[’'ʼ]?", "g");
+  const ELIDE = /^(l|d|j|m|n|s|t|c|qu|jusqu|lorsqu|puisqu|quoiqu)'/i;
+  const ELIDED = { l: "le", d: "de", j: "je", m: "me", n: "ne", s: "se", t: "te", c: "ce", qu: "que", jusqu: "jusque", lorsqu: "lorsque", puisqu: "puisque", quoiqu: "quoique" };
+  const norm = (w) => w.replace(/ſ/g, "s").replace(/[’ʼ]/g, "'").replace(/[[\]]/g, "");
+  function tokens(text) {
     const out = []; let m; WORD.lastIndex = 0;
     while ((m = WORD.exec(text))) {
-      let s = m.index, w = m[0];
-      if (lc === "fr") { const e = w.match(ELIDE); if (e && w.length > e[0].length) { out.push([s, s + e[0].length, e[1].toLowerCase() + "e"]); s += e[0].length; w = w.slice(e[0].length); } }
-      out.push([s, m.index + m[0].length, w]);
+      const before = text.slice(Math.max(0, m.index - 3), m.index);
+      out.push([m.index, m.index + m[0].length, m[0], m.index === 0 || /[.!?…:;«»„“"(\[—–]\s*$/.test(before)]);
     }
     return out;
+  }
+  // one word of pasted text → [[start, end, id, alt?]] (contractions split as the build does)
+  async function resolveTok(raw, s, initial) {
+    const look = async (w, ini) => {
+      const f = fold(w)[0], k = f && /[a-z]/.test(f) ? f : "_", sh = await formShard(k);
+      return (ini && sh["^" + w]) || sh[w] || sh[w.toLowerCase()] || null;
+    };
+    const w = norm(raw), core = w.replace(/'$/, "");
+    let r = !/'$/.test(w) && (await look(w, initial));
+    if (r) return [[s, s + raw.length, r[0], r[1]]];
+    if (/'$/.test(w)) {
+      const e = lc === "fr" && w.match(ELIDE);
+      if (e && e[0].length === w.length) { r = await look(ELIDED[e[1].toLowerCase()], false); return [[s, s + raw.length, r ? r[0] : -1]]; }
+      if (lc === "de") { r = (await look(core + "e", initial)) || (await look(core, initial)); if (r) return [[s, s + raw.length, r[0], r[1]]]; }
+    }
+    r = await look(core, initial); if (r) return [[s, s + core.length, r[0], r[1]]];
+    if (lc === "fr") { const e = core.match(ELIDE); if (e && e[0].length < core.length) { const n = e[0].length, h = await look(ELIDED[e[1].toLowerCase()], false); return [[s, s + n, h ? h[0] : -1]].concat(await resolveTok(raw.slice(n), s + n, false)); } }
+    if (lc === "de" && /'s$/.test(core) && core.length > 2) { const h = await look(core.slice(0, -2), initial), es = await look("es", false); if (h) return [[s, s + core.length - 2, h[0], h[1]], [s + core.length - 2, s + core.length, es ? es[0] : -1]]; }
+    if (core.includes("-")) {
+      const out = []; let at = 0;
+      for (const [k, seg] of raw.slice(0, core.length).split("-").entries()) {
+        const a = at; at += seg.length + 1;
+        if (!seg || (k > 0 && norm(seg).toLowerCase() === "t")) continue;
+        out.push(...(await resolveTok(seg, s + a, initial && k === 0)));
+      }
+      if (out.some((x) => x[2] >= 0)) return out;
+    }
+    if (lc === "de" && core.includes("ß")) { r = await look(core.replace(/ß/g, "ss"), initial); if (r) return [[s, s + core.length, r[0], r[1]]]; }
+    return [[s, s + core.length, /^[A-ZÀ-Ý]/.test(raw) && !initial ? -2 : -1]];
   }
   const fold = (s) => s.toLowerCase().normalize("NFD").replace(/\p{M}/gu, "").replace(/ß/g, "ss").replace(/œ/g, "oe").replace(/æ/g, "ae");
 
@@ -95,7 +127,7 @@
   // ---- progress -----------------------------------------------------------------
   const SKEY = (lc) => "carta.read." + lc;
   function loadState(lc) {
-    try { const s = JSON.parse(localStorage.getItem(SKEY(lc))); if (s && s.v === 1) return s; } catch (e) {}
+    try { const s = JSON.parse(localStorage.getItem(SKEY(lc))); if (s && s.v === 2) return s; } catch (e) {}
     return null;
   }
   function save() { try { localStorage.setItem(SKEY(lc), JSON.stringify(st)); } catch (e) {} }
@@ -106,6 +138,8 @@
   // later, always in a new sentence. Reading past one without tapping is the review.
   const DAY = 864e5, INT = [8 * 6e4, DAY, 3 * DAY, 8 * DAY, 21 * DAY];
   const today = () => { const d = new Date(); return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate(); };
+  // progress is kept per dictionary entry: the spelling, plus the etymology number for homographs
+  const wk = (L) => (L[8] ? L[0] + "#" + L[8] : L[0]);
   function lrn(w) { const x = st.learn[w]; if (x == null) return null; if (typeof x === "number") st.learn[w] = { n: x, s: 0, due: 0 }; return st.learn[w]; }
   const isDue = (x) => x && x.due <= Date.now();
   // A word you lose again after it had started to stick is a hard one for you: it starts
@@ -125,16 +159,16 @@
   }
   function known(i) {
     const L = D[lc].lex[i]; if (!L) return false;
-    const w = L[0];
+    const w = wk(L);
     const x = lrn(w);
     if (x) return x.s >= 2; // well on the way: no longer counts against the stretch
     if (st.known[w]) return true;
     return L[3] >= st.z || (L[5] === 1 && L[3] >= 25);
   }
-  const learningIn = (q) => { const out = new Set(); for (const y of q.w) { const i = idOf(y); if (i >= 0) { const x = lrn(D[lc].lex[i][0]); if (x) out.add(i); } } return out; };
-  const dueIn = (q) => { let n = 0; for (const i of learningIn(q)) if (isDue(lrn(D[lc].lex[i][0]))) n++; return n; };
+  const learningIn = (q) => { const out = new Set(); for (const y of q.w) { const i = idOf(y); if (i >= 0) { const x = lrn(wk(D[lc].lex[i])); if (x) out.add(i); } } return out; };
+  const dueIn = (q) => { let n = 0; for (const i of learningIn(q)) if (isDue(lrn(wk(D[lc].lex[i])))) n++; return n; };
   function idOf(x) { return Array.isArray(x) ? x[2] : x; }
-  const unknownIn = (q) => { const u = new Set(); let n = 0; for (const x of q.w) { const i = idOf(x); n++; if (i < 0 || !known(i)) u.add(i < 0 ? "?" + n : i); } return u; };
+  const unknownIn = (q) => { const u = new Set(); let n = 0; for (const x of q.w) { const i = idOf(x); n++; if (i === -2 || (i >= 0 && D[lc].lex[i][7] & 1)) continue; if (i < 0 || !known(i)) u.add(i < 0 ? "?" + n : i); } return u; };
 
   // ---- picking the next quotation -----------------------------------------------
   async function pick() {
@@ -144,6 +178,7 @@
     const srcOk = (q) => (st.src === "classics" ? q.c : st.src === "newer" ? !q.c : true);
     // walk up from the easiest band; stop once there are enough at the right stretch
     const good = [], near = [];
+    let fewest = null, fewestShare = 2;    // nothing at the stretch (starting from zero): the fewest new words
     for (const b of ids) {
       const qs = await band(b);
       for (const q of qs) {
@@ -153,6 +188,7 @@
         if (st.seen[key]) continue;
         const u = unknownIn(q).size, cov = 1 - u / q.w.length;
         if (u >= 1 && u <= 3 && cov >= 0.85) good.push(q); else if (u <= 6 && cov >= 0.7) near.push([u, q]);
+        else if (u / q.w.length + Math.random() * 0.02 < fewestShare) { fewestShare = u / q.w.length; fewest = q; }
       }
       if (good.length >= 25 && (!Object.keys(st.learn).length || good.some((q) => dueIn(q) > 0) || b > ids[0] + 12)) break;
     }
@@ -163,7 +199,7 @@
       return good[Math.floor(Math.random() * Math.min(good.length, 25))];
     }
     near.sort((a, b) => a[0] - b[0]);
-    return near.length ? near[Math.floor(Math.random() * Math.min(near.length, 8))][1] : null;
+    return near.length ? near[Math.floor(Math.random() * Math.min(near.length, 8))][1] : fewest;
   }
 
   // ---- rendering --------------------------------------------------------------------
@@ -217,7 +253,7 @@
     for (const [, label, z, sub] of LEVELS[lc]) {
       const b = btn("rd-level");
       b.append(el("span", "rd-l1", label), el("span", "rd-l2", sub));
-      b.addEventListener("click", () => { st = { v: 1, z, known: {}, learn: {}, seen: {}, author: null, n: 0 }; save(); header(); next(false); });
+      b.addEventListener("click", () => { st = { v: 2, z, known: {}, learn: {}, seen: {}, author: null, n: 0 }; save(); header(); next(false); });
       box.appendChild(b);
     }
     body().appendChild(box);
@@ -228,13 +264,14 @@
     const b = body(); b.innerHTML = ""; card().hidden = true; sel = null; tappedHere = new Set(); selMode = false; checked = false;
     const p = el("p", "rd-quote"); p.lang = lc;
     let at = 0;
-    toks.forEach(([s, e, i], n) => {
+    toks.forEach(([s, e, i, alt], n) => {
       if (s > at) p.appendChild(document.createTextNode(q.t.slice(at, s)));
       const w = el("span", "rd-w", q.t.slice(s, e));
-      if (i < 0) w.classList.add("rd-unk");
-      else if (lrn(D[lc].lex[i][0])) w.classList.add("rd-learn");
+      if (i === -2 || (i >= 0 && D[lc].lex[i][7] & 1)) w.classList.add("rd-name");    // a person or place
+      else if (i < 0) w.classList.add("rd-unk");
+      else if (lrn(wk(D[lc].lex[i]))) w.classList.add("rd-learn");
       else if (!known(i)) w.classList.add(D[lc].lex[i][5] ? "rd-cog" : "rd-new");
-      w.dataset.n = n; w.dataset.i = i; w.dataset.s = s; w.dataset.e = e;
+      w.dataset.n = n; w.dataset.i = i; w.dataset.s = s; w.dataset.e = e; if (alt != null) w.dataset.alt = alt;
       bindWord(w, q, i);
       p.appendChild(w); at = e;
     });
@@ -314,23 +351,26 @@
     }
     if (L && L[2]) top.appendChild(el("i", "rd-c-pos", L[2]));
     c.appendChild(top);
-    c.appendChild(el("p", "rd-c-g", L ? L[1] || "—" : "Not in the dictionary yet."));
+    c.appendChild(el("p", "rd-c-g", L ? L[1] || "—" : i === -2 ? "A name." : "Not in the dictionary yet."));
     if (L && L[4]) c.appendChild(el("p", "rd-c-cog", (L[5] ? "≈ English " : "Cousin of English ") + L[4]));
-    if (!L) return;
+    // without the sentence's sense there's no sure choice between homographs: show the runner-up
+    const ai = w.dataset.alt != null ? +w.dataset.alt : -1, A = ai >= 0 ? D[lc].lex[ai] : null;
+    if (A && A[0] && (A[0] !== (L && L[0]) || A[1] !== (L && L[1]))) c.appendChild(el("p", "rd-c-cog", "Or: " + A[0] + (A[1] ? " — " + A[1] : "")));
+    if (!L || L[7] & 1) return;
     // a tap means "show me": it joins the learning pile unless you say you know it
-    const had = lrn(L[0]);
+    const K = wk(L), had = lrn(K);
     if (had && had.src && had.src !== (cur && cur.a)) c.appendChild(el("p", "rd-c-met", "Met before in " + had.src));
-    if (!tappedHere.has(L[0])) {
-      tappedHere.add(L[0]);
+    if (!tappedHere.has(K)) {
+      tappedHere.add(K);
       const x = had || { n: 0, s: 0, due: 0, src: cur && !cur.own ? cur.a : "your text" };
       lapse(x); x.due = Date.now() + INT[0];
-      st.learn[L[0]] = x; delete st.known[L[0]]; save(); wordsChip();
+      st.learn[K] = x; delete st.known[K]; save(); wordsChip();
     }
     w.classList.remove("rd-cog", "rd-learn"); w.classList.add("rd-new");
     footer(!!(cur && cur.own));
     const row = el("div", "rd-c-acts");
     const k = btn("rd-btn", "I know this");
-    k.addEventListener("click", () => { delete st.learn[L[0]]; tappedHere.delete(L[0]); st.known[L[0]] = 1; save(); wordsChip(); w.classList.remove("rd-new", "rd-tapped"); c.hidden = true; footer(!!(cur && cur.own)); });
+    k.addEventListener("click", () => { delete st.learn[K]; tappedHere.delete(K); st.known[K] = 1; save(); wordsChip(); w.classList.remove("rd-new", "rd-tapped"); c.hidden = true; footer(!!(cur && cur.own)); });
     const m = btn("rd-btn rd-btn-map", "On the map");
     m.addEventListener("click", () => toMap(i));
     row.append(k, m);
@@ -374,7 +414,7 @@
     const seenL = new Set();
     for (const w of spans) {
       const i = +w.dataset.i; if (!(i >= 0)) continue;
-      const L = D[lc].lex[i]; if (!L || !L[1] || SKIP_POS.test(L[2] || "") || L[3] >= CHECK_MAX_Z) continue;
+      const L = D[lc].lex[i]; if (!L || !L[1] || L[7] & 1 || SKIP_POS.test(L[2] || "") || L[3] >= CHECK_MAX_Z) continue;
       if (seenL.has(L[0])) continue; seenL.add(L[0]);
       const st0 = senseStems(L[1]); if (!st0.size) continue;
       let hit = false;
@@ -395,17 +435,17 @@
         const li = el("li"); li.append(el("b", null, L[0]), document.createTextNode(" — " + L[1]));
         ul.appendChild(li);
         // a word you didn't carry over joins your words, as if you'd tapped it
-        if (!tappedHere.has(L[0])) {
-          tappedHere.add(L[0]);
-          const x = lrn(L[0]) || { n: 0, s: 0, due: 0, src: cur && !cur.own ? cur.a : "your text" };
-          lapse(x); x.due = Date.now() + INT[0]; st.learn[L[0]] = x; delete st.known[L[0]];
+        if (!tappedHere.has(wk(L))) {
+          tappedHere.add(wk(L));
+          const x = lrn(wk(L)) || { n: 0, s: 0, due: 0, src: cur && !cur.own ? cur.a : "your text" };
+          lapse(x); x.due = Date.now() + INT[0]; st.learn[wk(L)] = x; delete st.known[wk(L)];
         }
       }
       v.appendChild(ul);
     }
     box.appendChild(v);
     // carried over correctly while still learning: that word is getting easier
-    for (const L of got) { const x = lrn(L[0]); if (x) x.e = Math.min(1.6, (x.e || 1) + 0.08); }
+    for (const L of got) { const x = lrn(wk(L)); if (x) x.e = Math.min(1.6, (x.e || 1) + 0.08); }
     adapt(n ? got.length / n : null, n);
     (st.tx = st.tx || []).push({ a: q.a || "", t: q.t, you: text, got: got.length, n, d: Date.now() });
     if (st.tx.length > 300) st.tx.splice(0, st.tx.length - 300);
@@ -421,7 +461,7 @@
 
   // ---- your words: everything you've tapped (or missed in a translation) -----------------
   function wordsChip() { const c = panel && panel.querySelector(".rd-words-btn"); if (c) { const n = Object.keys(st.learn).length; c.textContent = n ? "Your words · " + n : "Your words"; } }
-  function lexIndex() { const d = D[lc]; if (!d.byLemma) { d.byLemma = new Map(); d.lex.forEach((L, i) => { if (L && !d.byLemma.has(L[0])) d.byLemma.set(L[0], i); }); } return d.byLemma; }
+  function lexIndex() { const d = D[lc]; if (!d.byLemma) { d.byLemma = new Map(); d.lex.forEach((L, i) => { if (L && !d.byLemma.has(wk(L))) d.byLemma.set(wk(L), i); }); } return d.byLemma; }
   function when(due) {
     const d = due - Date.now();
     if (d <= 0) return "due now";
@@ -444,7 +484,7 @@
       const i = idx.has(w) ? idx.get(w) : -1, L = i >= 0 ? D[lc].lex[i] : null;
       const li = el("li", "rd-wl-i");
       const head = el("div", "rd-wl-head");
-      head.appendChild(el("b", "rd-wl-w", w));
+      head.appendChild(el("b", "rd-wl-w", L ? L[0] : w.replace(/#.*$/, "")));
       if (L && L[2]) head.appendChild(el("i", "rd-c-pos", L[2]));
       head.appendChild(el("span", "rd-wl-when", (x.s ? "step " + (x.s + 1) + " of 5 · " : "") + when(x.due)));
       li.appendChild(head);
@@ -452,7 +492,7 @@
       if (L && L[4]) li.appendChild(el("p", "rd-c-cog", (L[5] ? "≈ English " : "Cousin of English ") + L[4]));
       if (x.src) li.appendChild(el("p", "rd-c-met", "Met in " + x.src));
       const acts = el("div", "rd-c-acts");
-      if (SP && voiceFor(lc)) { const sy = btn("rd-btn", "♪ Say"); sy.addEventListener("click", () => { unlock(); say(w, RATES[rateIx] * 0.85); }); acts.appendChild(sy); }
+      if (SP && voiceFor(lc)) { const sy = btn("rd-btn", "♪ Say"); sy.addEventListener("click", () => { unlock(); say(L ? L[0] : w.replace(/#.*$/, ""), RATES[rateIx] * 0.85); }); acts.appendChild(sy); }
       const kn = btn("rd-btn", "I know it"); kn.addEventListener("click", () => { delete st.learn[w]; st.known[w] = 1; save(); li.remove(); });
       acts.appendChild(kn);
       if (i >= 0) { const mp = btn("rd-btn", "On the map"); mp.addEventListener("click", () => toMap(i)); acts.appendChild(mp); }
@@ -466,7 +506,7 @@
   function toMap(i) {
     const L = i >= 0 ? D[lc].lex[i] : null;
     if (!L || !window.RootMap || !RootMap.loaded()) return;
-    let n = RootMap.findIn(LANG[lc].name, L[0]);
+    let n = L[6] >= 0 && RootMap.build && RootMap.build() === D[lc].idx.build ? L[6] : RootMap.findIn(LANG[lc].name, L[0]);
     if (n < 0 && L[4]) n = RootMap.find(L[4]);
     if (n < 0) { flash("Not on the map yet"); return; }
     stopSpeech(); panel.hidden = true; mini.hidden = false;
@@ -513,7 +553,7 @@
       for (const y of cur.w) {
         const i = idOf(y);
         if (i < 0) continue;
-        const w = D[lc].lex[i][0], x = lrn(w);
+        const w = wk(D[lc].lex[i]), x = lrn(w);
         if (x) {
           // read past it without asking: it held. Early sightings don't count; it has to have faded a little
           if (!tappedHere.has(w) && x.due <= now) {
@@ -532,11 +572,9 @@
     const q = await pick();
     cur = q;
     if (!q) { body().innerHTML = '<p class="rd-note">Nothing left at this level' + (st.author ? " for this author" : "") + ".</p>"; footer(false); return; }
-    // quotations store lemma ids only; positions come from the same tokenizer the build used
-    const tk = tokens(q.t, lc);
-    const w = tk.length === q.w.length ? tk.map(([s, e], n) => [s, e, idOf(q.w[n])]) : tk.map(([s, e]) => [s, e, -1]);
-    q.w = w;
-    renderText(q, w);
+    // quotations carry each word's position and reading from the build: [start, length, id, runner-up?]
+    if (!q.conv) { q.w = q.w.map((x) => [x[0], x[0] + x[1], x[2], x[3]]); q.conv = 1; }
+    renderText(q, q.w);
     footer(false);
   }
 
@@ -551,14 +589,8 @@
     go.addEventListener("click", async () => {
       const t = ta.value.trim(); if (!t) return;
       try { localStorage.setItem("carta.read.paste." + lc, t); } catch (e) {}
-      const toks = tokens(t, lc);
-      const keys = new Set(toks.map(([, , w]) => { const f = fold(w)[0]; return f && /[a-z]/.test(f) ? f : "_"; }));
-      const shards = {}; await Promise.all([...keys].map(async (k) => (shards[k] = await formShard(k))));
-      const w = toks.map(([s, e, x]) => {
-        const f = fold(x)[0], sh = shards[f && /[a-z]/.test(f) ? f : "_"] || {};
-        const i = sh[x] != null ? sh[x] : sh[x.toLowerCase()];
-        return [s, e, i == null ? -1 : i];
-      });
+      const w = [];
+      for (const [s, , raw, ini] of tokens(t)) w.push(...(await resolveTok(raw, s, ini)));
       cur = { t, w, own: true, a: "", r: "Your text" };
       renderText(cur, w); footer(true);
     });

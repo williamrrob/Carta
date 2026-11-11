@@ -16,7 +16,8 @@
  *
  * Input: g/*.json (scripts/build-lexeme-graph.js) + rootwork.sqlite headwords.
  * Output (served):
- *   graph/info.json      { n, families, langs, eras, bounds, regions, trees }
+ *   graph/info.json      { build, n, families, langs, eras, bounds, regions, trees }  (build: run stamp the
+ *                        reader's lexicon must match, since it stores map indices)
  *   graph/labels.json    [display term per node]
  *   graph/xy.bin         Float32 x,y per node
  *   graph/meta.bin       Uint8 family, size per node
@@ -399,7 +400,11 @@ for (let i = 0; i < N; i++) {
   if (d >= 3) starts.push(i);
 }
 process.stderr.write(`${starts.length} starting words\n`);
+// build stamp: the reader's lexicon stores map indices from this run and checks it against this
+const BUILD = Date.now().toString(36);
+fs.writeFileSync(path.join(GDIR, "build.txt"), BUILD);
 fs.writeFileSync(path.join(OUT, "info.json"), JSON.stringify({
+  build: BUILD,
   starts,
   n: N, chunk: CHUNK, families: FAMILIES.map((f) => f[0]), langs, eras: langs.map(eraOf),
   bounds: [minx, miny, maxx, maxy],

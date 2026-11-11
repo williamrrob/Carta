@@ -13,7 +13,8 @@
  *     x?: etymology prose (≤400), id?: [ids other entries cite it by (<id:…>)],
  *     et?: [{ n: template, a: [positional args 1..], t?: gloss, id?, j?: "+"|"&" connector before it }],
  *     ds?: [[depth, langCode, word, flag?]] }   its Descendants tree, flattened (flag 1 borrowed, 2 calque)
- * With FORMS=1 in the environment, inflected-form entries are kept too, as { w, l, p, fo: lemma }.
+ * With FORMS=1 in the environment, inflected-form entries are kept too, as { w, l, p, fo: [lemmas] }, and
+ * a lemma page that is also a form (été: summer; past participle of être) carries fo beside its senses.
  * Beside the output: <out>.langs.json, language code → name votes.
  */
 "use strict";
@@ -120,13 +121,13 @@ function flatDesc(list, depth, out) {
 function slim(r) {
   const senses = r.senses || [];
   const real = senses.filter((s) => !(s.form_of || (s.tags || []).includes("form-of")));
-  if (!real.length || !r.word) {
-    // FORMS=1: inflected forms as { w, l, p, fo: base } (English headwords like "greatest" fold under "great")
-    if (process.env.FORMS && r.word) { for (const s of senses) for (const f of s.form_of || []) if (f.word) return { w: r.word, l: r.lang_code, p: r.pos, fo: f.word }; }
-    return null;
-  }
+  // FORMS=1: the lemmas this page is an inflected form of (suis → être, suivre), every one
+  let fo = null;
+  if (process.env.FORMS && r.word) { const s2 = new Set(); for (const s of senses) for (const f of s.form_of || []) if (f.word && f.word !== r.word) s2.add(f.word); if (s2.size) fo = [...s2]; }
+  if (!real.length || !r.word) return fo ? { w: r.word, l: r.lang_code, p: r.pos, fo } : null;
   vote(r.lang_code, r.lang);
   const o = { w: r.word, l: r.lang_code, p: r.pos };
+  if (fo) o.fo = fo;
   if (r.etymology_number) o.n = r.etymology_number;
   for (const f of r.forms || []) if ((f.tags || []).includes("canonical") && f.form && f.form !== r.word) { o.h = f.form; break; }
   const g = real[0].glosses && real[0].glosses[real[0].glosses.length - 1]; if (g) o.g = g.length > 120 ? g.slice(0, 118) + "…" : g;

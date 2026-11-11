@@ -20,6 +20,15 @@
   `V` bumped to 8. The current app renders it (screenshot checked, no console errors), `npm test` passes.
 - Full numbers: `review/parity-graph-report.txt` (regenerate with `scripts/report-lexeme-graph.js`).
 
+Reader on the map's entries (Nov 10–11, Will: "they should without a doubt draw from the same data"):
+the reader's lexicon is now the map's French/German entries (CLAUDE.md "Reader"); plan reviewed by a
+Fable 5.2 advisor first. Unrecognised quotation words: French 3.5% → 1.4%, German 5.8% → 1.2%; every
+dictionary word in a quotation is a map point and "On the map" opens that exact point. Names (Toronto,
+Fiona; 64k across the four languages) are off the map unless something descends from them; days,
+months, festivals, languages stay. "None yet" level fixed (it found no quotation, before too).
+Not done yet: English cognates from the graph (still the October ones, by title); re-pooling
+quotations from the dumps (the current set was reused).
+
 Open for Will (not decided in PARITY.md):
 1. (Nov 10, Will: import them.) 239,467 English dictionary words with an etymology got entry pages
    (`import-kaikki.js --words`, list = single words, not names/phrases, not Internet/neologism/

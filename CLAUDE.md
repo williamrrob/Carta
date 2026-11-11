@@ -51,17 +51,26 @@ release); search letters the query in place and marks matches on the map.
   `scripts/build-etym-graph.js` is the previous, English-first builder (kept for reference; don't use).
 
 **Reader (French / German).** `reader.js` + `reader.css`, opened from the menu or the home
-buttons (❦ Lire / ❦ Lesen). Data: `python3 scripts/build-reader.py` → `reader/<fr|de>/`
-(`lex.json` lemma table with English gloss + English cognate, `forms/<letter>.json` for pasted
-text, `q/<band>.json` canon-author quotations by difficulty). Sources: English-Wiktionary
-FR/DE dumps (`vendor-data/kaikki-French|German.jsonl.gz`) and the French/German editions
-(`frwikt-Francais.jsonl.gz`, `dewikt-Deutsch.jsonl.gz` from kaikki.org/frwiktionary,
-/dewiktionary). Author list = `CANON` in the script. Progress is per-device localStorage
-`carta.read.<lc>`, keyed by lemma. FR/DE words also sit on the map: `build-etym-graph.js`
-adds reader lemmas (zipf ≥ 2.8) with their own chains (`import-kaikki-etym.js fr|de`).
-Full rebuild order: `import-kaikki-etym.js` (en, fr, de) → `build-reader.py` →
-`build-etym-graph.js` → `import-kaikki-ancestors.js` → `build-etym-graph.js` →
-`build-graph-layout.js`.
+buttons (❦ Lire / ❦ Lesen). **The reader and the map share one set of dictionary entries** (Nov 2026):
+`build-lexeme-graph.js` writes `g/lex-<fr|de>.jsonl` (every FR/DE entry with its map key) and
+`g/forms-<lc>.json` (inflected form → lemmas, from `extract-kaikki.js` with FORMS=1); the layout writes
+`g/keys.json` and a build stamp (`graph/info.json` `build`); `python3 scripts/build-reader.py [fr|de|all]`
+resolves every quotation word through `scripts/reader_resolve.py` and writes `reader/<lc>/`:
+`lex.json` rows `[title, gloss, pos, zipf*10, cognate, transparent, map index, flags, ety?]`, `forms/<k>.json`
+(surface → [best, runner-up] ids, case-sensitive, `^` = sentence-initial reading) for pasted text,
+`q/<band>.json` quotations with `w: [[start, length, id, runner-up?]]` (−1 unknown, −2 taken for a name).
+"On the map" opens the stored index when the build stamps match (else searches by spelling).
+Resolution: obsolete/"spelling of" entries lose (peut → pouvoir, daß → dass); pronouns/articles/
+prepositions win on an exact match; an inflection wins when its lemma's other forms are frequent
+(est → être, gewesen → sein); else the exact entry (livre "book"); `review/reader-overrides.tsv` settles
+hand-checked words (it only chooses among entries). Contractions: whole word if the dictionary has it
+(au, zum, aujourd'hui), else elision / hyphen / 's splits; ſ, curly apostrophes and [D]ie brackets
+normalised. Quotation pool: `vendor-data/reader-pool-<lc>.jsonl` (`build-reader.py pool` from the
+dumps, or `pool-from-served`). Rebuild order after the graph: layout → `build-reader.py` → bump `V` in
+reader.js. `test/reader-map.test.js` (in `npm test`) checks the two still agree. English cognates are
+still carried over by title from the previous `reader/<lc>/lex.json` (or `READER_OLD_LEX`); graph-derived ones are next.
+Author list = `CANON` in the script. Progress is per-device localStorage `carta.read.<lc>` (v2), keyed
+by entry (title + etymology number for homographs).
 
 Reader behaviour worth knowing before changing it: tapped words go into `learn`
 ({n, s, due, src}) and return on a spaced schedule (`INT` in reader.js); reading past a
