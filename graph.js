@@ -147,9 +147,27 @@
       (G.crossUp.get(c) || G.crossUp.set(c, []).get(c)).push(p);
       (G.crossDown.get(p) || G.crossDown.set(p, []).get(p)).push(c);
     }
+    // Emphasis. A point's size is how many words descend from it, and by that count the affixes win
+    // everything: -al, -ion, un-, re- each sit in thousands of words (241 of the 400 largest points
+    // were suffixes). They belong on the map, under the roots: an affix draws and ranks at a
+    // fraction of its count. An affix is told by its spelling: a leading hyphen (-tion, *-yós) in any
+    // language; a trailing one (re-, μικρο-, Proto-Germanic *ga-) wherever the dictionary cites whole
+    // words, which leaves out Proto-Indo-European and the other reconstructions that cite bare roots
+    // the same way (*steh₂-). Their few prefixes (*n̥-) still read as roots: telling them apart needs
+    // the part of speech, which the served graph doesn't carry. Affix names are also lettered fainter.
+    // RM.size / info().size still give the true count.
+    const AFFIX = 0.28;
+    G.emph = new Uint8Array(N); G.affix = new Uint8Array(N);
+    const proto = info.langs.map((n) => /^Proto-/.test(n) && !/^Proto-(Germanic|West Germanic|Norse|Italic|Celtic|Brythonic|Slavic|Balto-Slavic|Hellenic)$/.test(n));
+    for (let i = 0; i < N; i++) {
+      const t = labels[i], a = t.charCodeAt(0) === 42 ? 1 : 0;   // past a reconstruction's *
+      const aff = t.length - a > 1 && (t.charCodeAt(a) === 45 || (t.charCodeAt(t.length - 1) === 45 && !proto[G.lang[i]]));
+      G.affix[i] = aff ? 1 : 0;
+      G.emph[i] = aff ? Math.round(G.meta[i * 2 + 1] * AFFIX) : G.meta[i * 2 + 1];
+    }
     // size order (labels when zoomed out)
     const order = new Int32Array(N); for (let i = 0; i < N; i++) order[i] = i;
-    G.bySize = Array.from(order).sort((a, b) => G.meta[b * 2 + 1] - G.meta[a * 2 + 1]);
+    G.bySize = Array.from(order).sort((a, b) => G.emph[b] - G.emph[a]);
     // spatial grid
     const [x0, y0, x1, y1] = info.bounds;
     const C = 4; G.cell = C; G.gx0 = x0; G.gy0 = y0;
@@ -230,7 +248,7 @@
       const r = Math.hypot(G.xy[i * 2], G.xy[i * 2 + 1]);
       const dim = r >= dustStart - 1 ? 0.45 : 1;
       col[i * 3] = c[0] * dim; col[i * 3 + 1] = c[1] * dim; col[i * 3 + 2] = c[2] * dim;
-      sz[i] = OPT.showQuiet || !G.quiet(i) ? G.meta[i * 2 + 1] : -1;
+      sz[i] = OPT.showQuiet || !G.quiet(i) ? G.emph[i] : -1;
     }
     G.col = col;
     B.pos = buf(G.xy); B.col = buf(col); B.sz = buf(sz);
@@ -666,14 +684,14 @@
       const cy0 = Math.max(0, Math.floor((wy0 - G.gy0) / G.cell)), cy1 = Math.min(G.gh - 1, Math.floor((wy1 - G.gy0) / G.cell));
       for (let gy = cy0; gy <= cy1; gy++) for (let gx = cx0; gx <= cx1; gx++) {
         const c = gx + gy * G.gw;
-        for (let k = G.cellStart[c]; k < G.cellStart[c + 1]; k++) { const i = G.cellItems[k]; if (G.meta[i * 2 + 1] >= minS || (famT >= 0 && G.tree && G.tree[i] === famT)) pool.push(i); }
+        for (let k = G.cellStart[c]; k < G.cellStart[c + 1]; k++) { const i = G.cellItems[k]; if (G.emph[i] >= minS || (famT >= 0 && G.tree && G.tree[i] === famT)) pool.push(i); }
       }
-      const fb = (i) => (famT >= 0 && G.tree[i] === famT ? 1e6 : 0) + G.meta[i * 2 + 1];
+      const fb = (i) => (famT >= 0 && G.tree[i] === famT ? 1e6 : 0) + G.emph[i];
       pool.sort((a, b) => fb(b) - fb(a));
       for (const i of pool) cand.push(i);
     } else {
       for (let k = 0, got = 0; k < G.bySize.length && got < 1500; k++) {
-        const i = G.bySize[k]; if (G.meta[i * 2 + 1] < minS) break;
+        const i = G.bySize[k]; if (G.emph[i] < minS) break;
         const x = G.xy[i * 2], y = G.xy[i * 2 + 1];
         if (x > wx0 && x < wx1 && y > wy0 && y < wy1) { cand.push(i); got++; }
       }
@@ -697,7 +715,7 @@
       if (focus && !OPT.otherFamilies && !isLit && G.tree && G.tree[i] !== G.tree[focus.idx]) continue;
       const isWord = G.lang[i] === 0;
       const big = isLit && i === focus.idx;
-      let fs = big ? 15 : (isLit ? 12.5 : Math.min(13, 10.5 + G.meta[i * 2 + 1] / 70)) * FS;
+      let fs = big ? 15 : (isLit ? 12.5 : Math.min(13, 10.5 + G.emph[i] / 70)) * FS;
       let txt = G.labels[i];
       let spaced = 0;
       if (big && L.headCaps) { txt = vForU(txt); fs = 22; spaced = 0.4; }
@@ -705,7 +723,7 @@
       ctx.font = (big ? "700 " : isWord ? wgt + " " : "italic " + wgt + " ") + fs + "px " + fam;
       if (ctx.letterSpacing !== undefined) ctx.letterSpacing = spaced ? fs * spaced + "px" : "0px";
       const w = ctx.measureText(txt).width;
-      const dot = Math.max(1, Math.min(34, (1 + G.meta[i * 2 + 1] / 40) * (isLit ? Math.max(2.4, Math.min(8, cam.s * 0.34)) : Math.max(0.9, Math.min(7, cam.s * 0.3)))));
+      const dot = Math.max(1, Math.min(34, (1 + G.emph[i] / 40) * (isLit ? Math.max(2.4, Math.min(8, cam.s * 0.34)) : Math.max(0.9, Math.min(7, cam.s * 0.3)))));
       const pr = big ? Math.max(13, Math.min(17, dot) / 2 + 3) : Math.min(17, Math.max(2, dot)) / 2 + 3;
       // try right, then left, then above (a lettered head goes above, spread over the land)
       const spots = spaced ? [[x - w / 2, y - pr - fs - 6, x + w / 2, y - pr - 4]] : [[x + pr, y - fs / 2 - 1, x + pr + w, y + fs / 2 + 1], [x - pr - w, y - fs / 2 - 1, x - pr, y + fs / 2 + 1], [x - w / 2, y - pr - fs - 1, x + w / 2, y - pr]];
@@ -718,7 +736,7 @@
       take(x - pr, y - pr, x + pr, y + pr);
       labelHits.push([ok[0] - 4, ok[1] - 4, ok[2] + 4, ok[3] + 4, i]);
       const famRGB = rgbOf(G.pal[G.meta[i * 2]]);
-      const a = focus && !isLit ? 0.62 : 1;
+      const a = (focus && !isLit ? 0.62 : 1) * (G.affix[i] && !isLit ? 0.6 : 1);
       if (cam.s >= READ_ZOOM) drawDot(x, y, dr, rgbOf(dotRGB(i)), isLit ? 1 : a); // a named dot at full strength
       let colr;
       if (isWord) colr = L.wordColor ? L.wordColor(i) : ink;
@@ -864,7 +882,7 @@
         if (!OPT.showQuiet && G.quiet(i) && !(focus && focus.lit.has(i))) continue;
         if (!shown(i) && !(focus && focus.lit.has(i))) continue;
         // bigger dots are easier to hit
-        const d = Math.hypot(G.xy[i * 2] - wx, G.xy[i * 2 + 1] - wy) - (G.meta[i * 2 + 1] / 400) * rad;
+        const d = Math.hypot(G.xy[i * 2] - wx, G.xy[i * 2 + 1] - wy) - (G.emph[i] / 400) * rad;
         if (d < bd) { bd = d; best = i; }
       }
     }
@@ -998,7 +1016,7 @@
     const L = dynLines(segs);
     const pts = order.map((i) => i);
     const pp = new Float32Array(pts.length * 2), pc = new Float32Array(pts.length * 3), ps = new Float32Array(pts.length);
-    pts.forEach((i, k) => { pp[k * 2] = G.xy[i * 2]; pp[k * 2 + 1] = G.xy[i * 2 + 1]; const c = dotRGB(i); pc[k * 3] = c[0]; pc[k * 3 + 1] = c[1]; pc[k * 3 + 2] = c[2]; ps[k] = G.meta[i * 2 + 1] + (i === idx ? 60 : 0); });
+    pts.forEach((i, k) => { pp[k * 2] = G.xy[i * 2]; pp[k * 2 + 1] = G.xy[i * 2 + 1]; const c = dotRGB(i); pc[k * 3] = c[0]; pc[k * 3 + 1] = c[1]; pc[k * 3 + 2] = c[2]; ps[k] = G.emph[i] + (i === idx ? 60 : 0); });
     const geo = { bp: buf(L.p), bc: buf(L.c), n: L.n, pp: buf(pp), pc: buf(pc), ps: buf(ps), np: pts.length };
     return { idx, lit, order, geo, root };
   }
@@ -1014,7 +1032,7 @@
     const head = list[list.length - 1];
     const L = dynLines(segs);
     const pp = new Float32Array(list.length * 2), pc = new Float32Array(list.length * 3), ps = new Float32Array(list.length);
-    list.forEach((i, k) => { pp[k * 2] = G.xy[i * 2]; pp[k * 2 + 1] = G.xy[i * 2 + 1]; const c = dotRGB(i); pc[k * 3] = c[0]; pc[k * 3 + 1] = c[1]; pc[k * 3 + 2] = c[2]; ps[k] = G.meta[i * 2 + 1] + (i === head ? 60 : 20); });
+    list.forEach((i, k) => { pp[k * 2] = G.xy[i * 2]; pp[k * 2 + 1] = G.xy[i * 2 + 1]; const c = dotRGB(i); pc[k * 3] = c[0]; pc[k * 3 + 1] = c[1]; pc[k * 3 + 2] = c[2]; ps[k] = G.emph[i] + (i === head ? 60 : 20); });
     const order = list.slice().reverse();
     return { idx: head, lit: new Set(list), order, root: list[0], geo: { bp: buf(L.p), bc: buf(L.c), n: L.n, pp: buf(pp), pc: buf(pc), ps: buf(ps), np: list.length }, tracing: true };
   }
