@@ -800,3 +800,5 @@ button, input, select, textarea, .alpha-tab, .save-btn { font-family: inherit; }
 :root[data-look="priestley"] .node-head { position: relative; }
 :root[data-look="priestley"] .node-star { position: absolute; right: 0; top: 0; }
 :root[data-look="priestley"] .dv-page.ln-page { border: 0; outline: 0; }
+:root[data-look="priestley"] .ln-phsel { background: rgba(43, 33, 25, .14); padding: 0 2px; }
+:root[data-look="priestley"] .ln-wbw .ln-ph-row b { font-style: italic; }

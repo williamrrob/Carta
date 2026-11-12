@@ -1,0 +1,36 @@
+# Phrases (scripts/build-phrases.py) that collide with ordinary word sequences more often than they mean the idiom.
+# lc<TAB>title<TAB>why
+fr	de un	first: fires on every d'un
+fr	de l'	partitive note, every de l'
+fr	y a	ellipsis note; il y a covers it
+fr	et des	or thereabouts: every et des
+fr	être à	every est à
+fr	que de	every que de
+fr	dire que	every dire que
+fr	pas que	every pas que
+fr	à toute	slang farewell; every à toute
+fr	se pouvoir	every se peut
+fr	sur ce	every sur ce N
+fr	de deux	every de deux
+fr	sa mère	vulgar intensifier; every sa mère
+fr	première fois	sexual sense; every première fois
+fr	histoire de	every histoire de
+fr	à moi !	every à moi
+fr	de première	every de première
+fr	fait que	every fait que
+fr	de par	every de par
+fr	se prendre	every se prend
+fr	et si	every et si
+fr	espèce de	insult sense; every espèce de
+fr	nombre de	every nombre de
+fr	le temps de	every le temps de
+de	der und der	stand-in sense; every der und der
+de	an sein	switched-on sense; every an … sein
+de	und so	ellipsis note; every und so
+de	es lebe	matches every es lebt
+de	zu haben	every zu haben
+de	und wie	every und wie
+de	erstes Mal	music sense
+de	Alter Mann	mining sense
+de	auch so	every auch so
+de	dem so sein	every dem … sein

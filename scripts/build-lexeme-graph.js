@@ -14,13 +14,14 @@
  *   Descendants list names the citing word, else matching part of speech, else first (counted).
  * Edges: the entry's own templates (lexeme-lib.js); an ancestor's own entry outranks a chain
  * inferred from a descendant's entry; Descendants trees add edges the bottom-up pass missed
- * (the child's own etymology wins where they disagree); {{root}} only where the root isn't
+ * (the child's own etymology wins where they disagree); an entry with no history at all goes under
+ * an entry that lists it among its Derived terms (src "v"); {{root}} only where the root isn't
  * already reached.
  *
  * Output: g/<hh>.json shards for scripts/build-graph-layout.js, key "<Language>|<title>[#n]":
  *   { l, t, g?, ipa?, hw?:1 (English headword with a words/ entry), lc?: en|fr|de|la, e?:1 (has
  *     an entry), up:[[key, kind, inferred?, src?]] (kind inh bor lbor der cal cmp aff; src
- *     "d" Descendants tree, "r" {{root}}, "s" stage bridge), fold?:[keys] (every parent in the same
+ *     "d" Descendants tree, "r" {{root}}, "s" stage bridge, "v" Derived terms list), fold?:[keys] (every parent in the same
  *     language: the non-affix parents it folds under), dr?:0 (not drawn), q?:1, en, ne, dbl, cog }
  * and g/stats.json (counts for the report). AMB=1 prints the commonest ambiguous citations and stops.
  */
@@ -145,6 +146,7 @@ function addRecord(r) {
   x.pn = (x.pn || 0) + 1;
   for (const id of r.id || []) { byId.set(fam + "|" + title + "|" + id, i); }
   if (r.ds) x.ds = x.ds ? x.ds.concat(r.ds) : r.ds;
+  if (r.dv) x.dv = x.dv ? x.dv.concat(r.dv) : r.dv;
   let gotRel = false;
   if (r.et) {
     const rel = relations(r);
@@ -381,6 +383,29 @@ function build() {
   }
   log(`Descendants trees: ${descAdded} edges added, ${descAgree} already there, ${descSkipped} skipped (the child's own entry gives another source)`);
   Object.assign(descStat, { descAdded, descAgree, descSkipped });
+  // "Derived terms" lists: an entry with no history at all (tagträumen: no etymology section) goes
+  // under an entry of its own language that lists it as derived (Tagtraum). Several list it →
+  // the one sharing the longest start with it (Tagtraum over träumen), then the first.
+  let dvAdded = 0;
+  const bare0 = (c) => { const m = own.get(c); return !m || !m.size; };
+  const lcp = (a, b) => { a = a.toLowerCase(); b = b.toLowerCase(); let k = 0; while (k < a.length && k < b.length && a[k] === b[k]) k++; return k; };
+  const dvBest = new Map();   // child → [parent, score]
+  for (let i = 0; i < nEntries; i++) {
+    const x = N[i]; if (!x.dv) continue;
+    const T = byTitle.get(x.f);
+    for (const w0 of x.dv) {
+      const cs = T && T.get(nfc(w0)); if (!cs) continue;
+      for (const c of cs) {
+        if (c === i || c >= nEntries || !N[c].e || !bare0(c)) continue;
+        const sc = lcp(N[c].t, x.t), b = dvBest.get(c);
+        if (!b || sc > b[1]) dvBest.set(c, [i, sc]);
+      }
+    }
+    x.dv = null;
+  }
+  for (const [c, [p]] of dvBest) { edge(own, c, p, "der", "v"); dvAdded++; }
+  log(`Derived-terms lists: ${dvAdded} history-less entries placed under the entry that lists them`);
+  Object.assign(descStat, { dvAdded });
   // {{root}}: only where the root isn't reached already
   let rootKept = 0, rootDropped = 0;
   const up = (i) => own.get(i);

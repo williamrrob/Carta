@@ -12,7 +12,8 @@
  *   { w, l, p, n?, h?: canonical form (Latin cantō for page canto), g, ipa?, q?:[tags],
  *     x?: etymology prose (≤400), id?: [ids other entries cite it by (<id:…>)],
  *     et?: [{ n: template, a: [positional args 1..], t?: gloss, id?, j?: "+"|"&" connector before it }],
- *     ds?: [[depth, langCode, word, flag?]] }   its Descendants tree, flattened (flag 1 borrowed, 2 calque)
+ *     ds?: [[depth, langCode, word, flag?]],   its Descendants tree, flattened (flag 1 borrowed, 2 calque)
+ *     dv?: [words] }                           its Derived terms list (same language)
  * With FORMS=1 in the environment, inflected-form entries are kept too, as { w, l, p, fo: [lemmas] }, and
  * a lemma page that is also a form (été: summer; past participle of être) carries fo beside its senses.
  * Beside the output: <out>.langs.json, language code → name votes.
@@ -151,6 +152,9 @@ function slim(r) {
   }
   if (ids.size) o.id = [...ids];
   if (r.descendants) { const ds = []; flatDesc(r.descendants, 0, ds); if (ds.length) o.ds = ds; }
+  // its "Derived terms" list: a word with no etymology of its own (tagträumen) is placed under the
+  // entry that lists it (Tagtraum) by build-lexeme-graph.js
+  if (r.derived) { const dv = [...new Set(r.derived.map((d) => d && d.word).filter((w) => w && w !== r.word && w.length < 60))].slice(0, 120); if (dv.length) o.dv = dv; }
   return o;
 }
 

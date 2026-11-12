@@ -9,7 +9,7 @@
 (function () {
   "use strict";
   const LANG = { fr: { name: "French", own: "Français" }, de: { name: "German", own: "Deutsch" } };
-  const V = "8"; // reader/ files (bump when reader/ is rebuilt)
+  const V = "9"; // reader/ files (bump when reader/ is rebuilt)
   const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
   const button = (cls, txt, label) => { const b = el("button", cls, txt); b.type = "button"; if (label) b.setAttribute("aria-label", label); return b; };
   const get = (p) => fetch("reader/" + p + "?v=" + V).then((r) => { if (!r.ok) throw new Error(p); return r.json(); });
@@ -82,7 +82,8 @@
   function load(lc) {
     if (D[lc]) return D[lc].ready;
     const d = (D[lc] = { bands: new Map() });
-    d.ready = Promise.all([get(lc + "/index.json"), get(lc + "/lex.json")]).then(([idx, lex]) => { d.idx = idx; d.lex = lex; });
+    d.ready = Promise.all([get(lc + "/index.json"), get(lc + "/lex.json"), get(lc + "/phrases.json").catch(() => [])])
+      .then(([idx, lex, ph]) => { d.idx = idx; d.lex = lex; d.ph = ph || []; });
     d.ready.catch(() => { delete D[lc]; });
     return d.ready;
   }
@@ -195,15 +196,23 @@
     });
     return out;
   }
+  // phrases the dictionary has (il y a "there is", es gibt, faire attention), set in the excerpt
+  // by scripts/build-phrases.py as q.p = [[phrase id, word k, word k, …]]: { [word k]: phrase }
+  function phrasesIn(q) {
+    const out = {}, P = D[lc].ph || [];
+    for (const x of q.p || []) { const ph = P[x[0]]; if (!ph) continue; const o = { t: ph[0], g: ph[1], ks: x.slice(1) }; for (const k of o.ks) out[k] = o; }
+    return out;
+  }
   function judge(q, text) {
     const mine = (text.match(/[A-Za-z]+/g) || []).map((w) => [w, stem(w)]);
-    const got = [], missed = [], hitStems = new Set(), byTitle = new Map(), res = {}, sep = sepVerbs(q);
+    const got = [], missed = [], hitStems = new Set(), byTitle = new Map(), res = {}, sep = sepVerbs(q), phr = phrasesIn(q);
     for (const [k, y] of q.w.entries()) {
       const i = idOf(y); if (!(i >= 0)) continue;
       const L = D[lc].lex[i]; if (!L || !L[1] || L[7] & 1 || SKIP_POS.test(L[2] || "") || L[3] >= CHECK_MAX_Z) continue;
       if (byTitle.has(L[0])) { res[i] = byTitle.get(L[0]); continue; }
       const gs = senseStems(L[1]); if (!gs.size) continue;
-      if (sep[k] != null) senseStems(D[lc].lex[sep[k]][1] || "").forEach((g) => gs.add(g));   // weh (in "tut … weh"): "hurt" counts
+      if (sep[k] != null) senseStems(D[lc].lex[sep[k]][1] || "").forEach((g) => gs.add(g));
+      if (phr[k]) senseStems(phr[k].g).forEach((g) => gs.add(g));   // il y avait: "there was" counts for all three   // weh (in "tut … weh"): "hurt" counts
       for (const j of homsOf(i).concat(Array.isArray(y) && y[3] != null ? [y[3]] : [])) { const A = D[lc].lex[j]; if (A && A[0] === L[0] && A[1]) senseStems(A[1]).forEach((g) => gs.add(g)); }
       let hit = null;
       for (const g of gs) for (const [, m] of mine) if (near(m, g)) { hit = m; break; }
@@ -319,11 +328,11 @@
     top.appendChild(header(true));
     const p = el("p", "ln-ex"); p.lang = lc;
     let at = 0;
-    q.w.forEach(([s, e, i, alt]) => {
+    q.w.forEach(([s, e, i, alt], k) => {
       if (s > at) p.appendChild(document.createTextNode(q.t.slice(at, s)));
       const w = el("span", "ln-w", q.t.slice(s, e));
       if (!isName(i) && (i < 0 || !known(i) || lrn(wk(D[lc].lex[i])))) w.classList.add("ln-new");   // dotted: new to you
-      w.dataset.i = i; w.dataset.s = s; w.dataset.e = e; if (alt != null) w.dataset.alt = alt;
+      w.dataset.i = i; w.dataset.s = s; w.dataset.e = e; w.dataset.k = k; if (alt != null) w.dataset.alt = alt;
       w.addEventListener("click", () => tapWord(w, +w.dataset.i));
       p.appendChild(w); at = e;
     });
@@ -391,8 +400,9 @@
     // the same word again hides the map window
     if (inlayOpen && tapped && tapped.w === w) { closeInlay(); return; }
     const ta = page.querySelector(".ln-you"); if (ta) ta.blur();
-    page.querySelectorAll(".ln-w.ln-sel").forEach((x) => x.classList.remove("ln-sel"));
+    page.querySelectorAll(".ln-w.ln-sel, .ln-w.ln-phsel").forEach((x) => x.classList.remove("ln-sel", "ln-phsel"));
     w.classList.add("ln-sel");
+    { const ph = phrasesIn(cur)[+w.dataset.k]; if (ph) for (const k of ph.ks) { const o = page.querySelector('.ln-ex .ln-w[data-k="' + k + '"]'); if (o && o !== w) o.classList.add("ln-phsel"); } }
     const L = i >= 0 ? D[lc].lex[i] : null;
     tapped = { w, i, surface: w.textContent };
     // after Check a tap is just a look: the check already put your misses on your words
@@ -456,6 +466,7 @@
       });
     } else co.appendChild(el("span", "ln-co-g", L ? L[1] || "—" : i === -2 ? "A name." : "Not in the dictionary yet."));
     if (L && L[4]) co.appendChild(el("i", "ln-co-c", (L[5] ? "≈ English " : "cousin of English ") + L[4]));
+    { const ph = phrasesIn(cur)[+w.dataset.k]; if (ph) co.appendChild(el("i", "ln-co-c ln-co-ph", "in the phrase " + ph.t + ": " + ph.g)); }
     { const k = cur.w.findIndex((y) => y[0] === +w.dataset.s), sv = k >= 0 ? sepVerbs(cur)[k] : null;
       if (sv != null && sv !== i) co.appendChild(el("i", "ln-co-c", "here part of " + D[lc].lex[sv][0] + ": " + D[lc].lex[sv][1])); }
     const ai = w.dataset.alt != null ? +w.dataset.alt : -1;
@@ -490,7 +501,7 @@
     const fig = page.querySelector(".ln-inlay");
     if (fig) fig.hidden = true;
     page.classList.remove("ln-inlay-open");
-    page.querySelectorAll(".ln-w.ln-sel").forEach((x) => x.classList.remove("ln-sel"));
+    page.querySelectorAll(".ln-w.ln-sel, .ln-w.ln-phsel").forEach((x) => x.classList.remove("ln-sel", "ln-phsel"));
     if (inlayOpen) { inlayOpen = false; if (RM() && RM().setMarks) RM().setMarks(null); window.CartaDiv.placeMap(); }
   }
   function iKnow() {
@@ -547,6 +558,13 @@
         const k = cur.w.indexOf(y), sv = sepVerbs(cur)[k], S = sv != null && sv !== i ? D[lc].lex[sv] : null;
         li.append(el("b", null, L[0]), document.createTextNode(" " + L[1] + other.map((g) => " · or " + g).join("") + (S ? " · here part of " + S[0] + ": " + S[1] : "")));
         ul.appendChild(li);
+      }
+      // the phrases in it, as phrases
+      const seen = new Set();
+      for (const ph of Object.values(phrasesIn(cur))) {
+        if (seen.has(ph)) continue; seen.add(ph);
+        const li = el("li", "ln-ph-row"); li.lang = lc;
+        li.append(el("b", null, ph.t), document.createTextNode(" " + ph.g)); ul.appendChild(li);
       }
       out.appendChild(ul);
     }
