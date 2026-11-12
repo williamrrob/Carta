@@ -24,7 +24,7 @@
  */
 (function () {
   "use strict";
-  const V = "8";
+  const V = "9";
   const DPR = Math.min(2, window.devicePixelRatio || 1);
 
   // ---- palettes (index = family in info.families) -----------------------------

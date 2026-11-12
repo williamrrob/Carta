@@ -9,7 +9,7 @@
 (function () {
   "use strict";
   const LANG = { fr: { name: "French", own: "Français" }, de: { name: "German", own: "Deutsch" } };
-  const V = "9"; // reader/ files (bump when reader/ is rebuilt)
+  const V = "10"; // reader/ files (bump when reader/ is rebuilt)
   const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
   const button = (cls, txt, label) => { const b = el("button", cls, txt); b.type = "button"; if (label) b.setAttribute("aria-label", label); return b; };
   const get = (p) => fetch("reader/" + p + "?v=" + V).then((r) => { if (!r.ok) throw new Error(p); return r.json(); });
