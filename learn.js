@@ -617,6 +617,13 @@
       // the window follows the page when it scrolls or the keyboard changes the layout
       const follow = () => { if (inlayOpen) window.CartaDiv.placeMap(); };
       scroll.addEventListener("scroll", follow, { passive: true });
+      // the map window answers the trackpad like the map itself (slide moves, pinch zooms)
+      page.addEventListener("wheel", (e) => {
+        if (!inlayOpen || !RM() || !RM().wheel || e.target.closest(".ln-co, .ln-full, .ln-know")) return;
+        const f = page.querySelector(".ln-inlay"), r = f && f.getBoundingClientRect();
+        if (!r || e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) return;
+        e.preventDefault(); RM().wheel(e);
+      }, { passive: false });
       if (window.visualViewport) window.visualViewport.addEventListener("resize", follow);
       if (window.visualViewport) window.visualViewport.addEventListener("scroll", () => { if (page.classList.contains("ln-typing") && window.visualViewport.offsetTop > 0) window.scrollTo(0, 0); });
     },

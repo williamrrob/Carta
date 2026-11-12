@@ -956,19 +956,31 @@
       start = null;
     };
     lab.parentElement.addEventListener("pointerup", up); lab.parentElement.addEventListener("pointercancel", up);
+    // Trackpad: a two-finger slide moves the map, a pinch (the browser sends it as a wheel with
+    // ctrlKey) or ⌘/Ctrl + scroll zooms. A mouse wheel (line-stepped deltas) zooms, as before.
     let wheelT = 0;
-    lab.parentElement.addEventListener("wheel", (e) => {
-      e.preventDefault();
+    RM.wheel = function (e) {
+      if (!G) return;
       lastInput = performance.now();
+      if (glide) glide = null;
       if (onInteract) { if (!wheelT) onInteract(true); clearTimeout(wheelT); wheelT = setTimeout(() => { wheelT = 0; onInteract(false); }, 450); }
-      const r = glc.getBoundingClientRect();
-      const px = e.clientX - r.left, py = e.clientY - r.top;
-      const before = toWorld(px, py);
-      cam.s = Math.max(0.05, Math.min(80, cam.s * Math.exp(-e.deltaY * 0.0016)));
-      const after = toWorld(px, py);
-      cam.x += before[0] - after[0]; cam.y += before[1] - after[1];
+      const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 400 : 1;
+      const dx = e.deltaX * unit, dy = e.deltaY * unit;
+      if (e.ctrlKey || e.metaKey || e.deltaMode !== 0) {
+        const r = glc.getBoundingClientRect();
+        const px = e.clientX - r.left, py = e.clientY - r.top;
+        const before = toWorld(px, py);
+        const k = e.ctrlKey && e.deltaMode === 0 ? 0.01 : 0.0016;   // pinch deltas are small
+        cam.s = Math.max(0.05, Math.min(80, cam.s * Math.exp(-dy * k)));
+        const after = toWorld(px, py);
+        cam.x += before[0] - after[0]; cam.y += before[1] - after[1];
+      } else {
+        cam.x += dx / cam.s; cam.y += dy / cam.s;
+      }
+      if (anim && anim.done) anim.done();
       anim = null; dirty = true;
-    }, { passive: false });
+    };
+    lab.parentElement.addEventListener("wheel", (e) => { e.preventDefault(); RM.wheel(e); }, { passive: false });
     lab.parentElement.addEventListener("dblclick", (e) => {
       const r = glc.getBoundingClientRect();
       const [wx, wy] = toWorld(e.clientX - r.left, e.clientY - r.top);
