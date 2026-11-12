@@ -91,7 +91,8 @@
 .ln-result:empty { display: none; }
 .ln-tr { margin: 0; font-size: 15px; line-height: 1.5; }
 .ln-wbw { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 3px; font-size: 14.5px; line-height: 1.4; }
-.ln-foot { display: flex; align-items: center; gap: 8px; margin-top: auto; padding-top: 10px; padding-right: 66px; }
+.ln-foot { display: flex; align-items: center; gap: 8px; margin-top: auto; padding-top: 10px; }
+.ln-foot > .ln-go { margin-left: auto; }   /* the hand is gone on pages: Check / Next sit at the right edge */
 .ln-legend { flex: 1 1 auto; font-size: 13px; }
 .ln-skip { margin-right: auto; }
 .ln-go { min-height: 44px; padding: 0 18px; cursor: pointer; }

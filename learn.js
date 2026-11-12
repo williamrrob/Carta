@@ -302,11 +302,10 @@
     ta.value = st.checked && st.draft ? st.draft : "";
     wrap.dataset.v = ta.value;
     ta.addEventListener("input", () => { wrap.dataset.v = ta.value; foot(); });
-    // tapping your English while the map is open: the map closes, the keyboard comes back (focus in the tap)
-    ta.addEventListener("pointerdown", () => { if (inlayOpen) closeInlay(); });
     // the keyboard must not push the excerpt off the top: the first tap focuses without
-    // scrolling, the page shrinks to sit above the keyboard (ln-typing, --kb) and stays at the top
-    ta.addEventListener("touchstart", (e) => { if (document.activeElement !== ta) { e.preventDefault(); if (inlayOpen) closeInlay(); ta.focus({ preventScroll: true }); } }, { passive: false });
+    // scrolling, the page shrinks to sit above the keyboard (ln-typing, --kb) and stays at the top.
+    // An open map window stays open while you type.
+    ta.addEventListener("touchstart", (e) => { if (document.activeElement !== ta) { e.preventDefault(); ta.focus({ preventScroll: true }); } }, { passive: false });
     ta.addEventListener("focus", () => { page.classList.add("ln-typing"); pin(); });
     ta.addEventListener("blur", () => { page.classList.remove("ln-typing"); });
     ta.addEventListener("keydown", (e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); doCheck(); } });
@@ -318,7 +317,16 @@
     if (st.checked) doCheck(true); else foot();
   }
   function pin() {
-    const go = () => { if (!page.classList.contains("ln-typing")) return; if (window.scrollY || (window.visualViewport && window.visualViewport.offsetTop)) window.scrollTo(0, 0); scroll.scrollTop = 0; };
+    const go = () => {
+      if (!page.classList.contains("ln-typing")) return;
+      if (window.scrollY || (window.visualViewport && window.visualViewport.offsetTop)) window.scrollTo(0, 0);
+      if (!inlayOpen) { scroll.scrollTop = 0; return; }
+      // with the map window open there may not be room for all three: keep your English in view, the rest above it
+      const ta = page.querySelector(".ln-you"); if (!ta) return;
+      const over = ta.getBoundingClientRect().bottom - scroll.getBoundingClientRect().bottom + 12;
+      if (over > 0) scroll.scrollTop += over;
+      window.CartaDiv.placeMap();
+    };
     go(); requestAnimationFrame(go); setTimeout(go, 120); setTimeout(go, 350); setTimeout(go, 700);
   }
   function foot() {
@@ -340,6 +348,8 @@
   // ---- tap a word: the keyboard drops, the map opens between the excerpt and your English ----
   function tapWord(w, i) {
     if (checked) return;
+    // the same word again hides the map window
+    if (inlayOpen && tapped && tapped.w === w) { closeInlay(); return; }
     const ta = page.querySelector(".ln-you"); if (ta) ta.blur();
     page.querySelectorAll(".ln-w.ln-sel").forEach((x) => x.classList.remove("ln-sel"));
     w.classList.add("ln-sel");
