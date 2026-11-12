@@ -109,6 +109,6 @@ When adding a word, note its doublets and cognates. The `e` (etymology) field sh
 
 ## Branch
 
-Main branch (deploys to `williamrrob.github.io/Claude_apps` on push):
+Main branch (deploys to `williamrrob.github.io/carta` on push):
 `claude/visual-etymology-app-093c1d`. Session work happens on per-session
 branches merged into main.

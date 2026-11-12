@@ -31,14 +31,14 @@ The site auto-publishes to GitHub Pages via the workflow in
    nothing private in this code.
 2. Settings → **Pages** → **Build and deployment** → **Source: GitHub Actions**.
 3. The workflow deploys automatically (and re-deploys on every push). Your URL:
-   **https://williamrrob.github.io/Claude_apps/**
+   **https://williamrrob.github.io/carta/**
 4. Open that URL and tap the **Add to Home Screen** button in the app — or:
    - **iPhone/iPad (Safari):** Share → *Add to Home Screen*.
    - **Mac (Safari):** File → *Add to Dock*. (Chrome/Edge show an install icon.)
 
 ### Run locally instead
 ```bash
-cd Claude_apps
+cd carta
 python3 -m http.server 8099
 # open http://localhost:8099  (or http://<your-computer-ip>:8099 from a phone on the same Wi-Fi)
 ```

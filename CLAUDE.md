@@ -4,7 +4,7 @@ User-facing name is **Carta** (Latin *charta* → chart, card, French *carte*, G
 
 Static, no-build web app (three `<script>` tags, JSON data files, GitHub
 Pages). **Main branch: `claude/visual-etymology-app-093c1d`** — pushing to it
-deploys to https://williamrrob.github.io/Claude_apps/. Session work happens on
+deploys to https://williamrrob.github.io/carta/. Session work happens on
 per-session branches merged into main.
 
 ## Current shape (update when it drifts)
