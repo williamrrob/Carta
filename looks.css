@@ -654,15 +654,16 @@ button, input, select, textarea, .alpha-tab, .save-btn { font-family: inherit; }
 /* =====================================================================
    STANDALONE GAP · installed to the home screen, iOS reports a viewport
    shorter than the screen, so anything pinned to the bottom stopped short
-   and left a dead band. --vgap (index.html) is that shortfall; every
+   and left a dead band. --vgap (index.html) is that shortfall; backgrounds
+   reach down by it, controls don't (newer iOS clips below the reported viewport). Every
    bottom-anchored fixed layer reaches down by it. 0 in the browser.
    ===================================================================== */
 .map, .settings-overlay, :root[data-look] .edge-bot { bottom: calc(0px - var(--vgap, 0px)); }
-:root[data-look] .orb { bottom: calc(18px + env(safe-area-inset-bottom) - var(--vgap, 0px)); }
-:root[data-look] .acts { bottom: calc(92px + env(safe-area-inset-bottom) - var(--vgap, 0px)); }
+:root[data-look] .orb { bottom: calc(18px + env(safe-area-inset-bottom)); }
+:root[data-look] .acts { bottom: calc(92px + env(safe-area-inset-bottom)); }
 :root[data-look] .app.acts-open::after { bottom: calc(0px - var(--vgap, 0px)); }
-:root[data-look="netscape"] .ns-status { bottom: calc(env(safe-area-inset-bottom) - var(--vgap, 0px)); }
-.app.quiz-peek .content { bottom: calc(env(safe-area-inset-bottom) + 20px - var(--vgap, 0px)); }
+:root[data-look="netscape"] .ns-status { bottom: env(safe-area-inset-bottom); }
+.app.quiz-peek .content { bottom: calc(env(safe-area-inset-bottom) + 20px); }
 
 /* =====================================================================
    FIT · the menu and the home strip size themselves to the screen
@@ -670,7 +671,7 @@ button, input, select, textarea, .alpha-tab, .save-btn { font-family: inherit; }
    panels never push past the menu's edge, and the home actions keep
    clear of the orb.
    ===================================================================== */
-.map-key { box-sizing: border-box; overflow-x: hidden; max-height: calc(100dvh + var(--vgap, 0px) - env(safe-area-inset-top) - 150px); }
+.map-key { box-sizing: border-box; overflow-x: hidden; max-height: calc(100dvh - env(safe-area-inset-top) - 150px); }
 .menu-acts { grid-template-columns: repeat(auto-fit, minmax(min(132px, 100%), 1fr)); }
 :root[data-look] .menu-act, :root[data-look] .menu-look { min-width: 0; white-space: normal; line-height: 1.2; overflow-wrap: anywhere; height: auto; }
 :root[data-look] .menu-act { min-height: 44px; padding: 10px 12px; display: flex; align-items: center; gap: 8px; text-align: left; }
