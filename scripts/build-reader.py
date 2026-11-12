@@ -203,7 +203,7 @@ def build(lc):
             raw = t[s:e]
             if ids is None:
                 # unknown: a capitalised word not at the start of a sentence is taken for a name
-                if raw[:1].isupper() and s > 0 and not re.search(r"[.!?…:«»„“\"—]\s*$", t[:s]): ws.append([s, e - s, -2]); continue
+                if raw[:1].isupper() and s > 0 and not re.search(r"[.!?…:«»„“\"—]\s*$", t[:s]) and R.is_name(raw): ws.append([s, e - s, -2]); continue
                 if raw.lower() in ("t",): continue
                 ws.append([s, e - s, -1]); unk += 1; hard += 1; counted += 1; continue
             E = R.E[ids[0]]

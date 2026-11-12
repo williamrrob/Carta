@@ -42,7 +42,41 @@ def norm(s):
     is not kept: offsets always refer to the raw text)."""
     return s.replace("ſ", "s").replace("’", "'").replace("[", "").replace("]", "")
 
+# German capitalises every noun, so an unknown capitalised word is usually a compound the
+# dictionary lacks (Weinhandlung = Wein + Handlung), not a name. Split it into two dictionary
+# words: the last part a noun, the first any entry (a linking -s/-es/-n/-en/-e/-er allowed).
+# A first part that is itself in the dictionary wins; the longest last part breaks ties
+# (Literatur + Zeitschrift, not Literaturzeit + Schrift). Returns (first, last) as dictionary
+# titles, or None. Same rule in learn.js (compoundOf).
+LINK = ("", "s", "es", "n", "en", "e", "er")
+# A last part may also be an inflected noun (Grab + Hände, Kartoffel + Feldern): noun_form(T)
+# says whether T is a form of a noun. NOUN_END: German noun suffixes, enough on their own to say
+# "a word, not a name" (Verspottung, Herzklopfens is caught by the split).
+NOUN_END = re.compile(r"(ung|heit|keit|schaft|tion|ität|nis|tum|ismus|chen|lein)(en|s|e|n|ses|sen|se)?$")
+def compound_parts(w, titles_lower, nouns, noun_form=None, _depth=0):
+    best = None
+    for k in range(3, len(w) - 3):
+        h, t = w[:k], w[k:]
+        T = t[:1].upper() + t[1:]
+        if T not in nouns and not (noun_form and noun_form(T)): continue
+        hl = h.lower()
+        for cut in LINK:
+            if cut and not hl.endswith(cut): continue
+            hh = hl[:len(hl) - len(cut)] if cut else hl
+            if len(hh) < 3: continue
+            if hh in titles_lower:
+                return (titles_lower[hh], T)          # k ascends: the first direct hit has the longest last part
+            if _depth == 0 and best is None and compound_parts(hh[:1].upper() + hh[1:], titles_lower, nouns, noun_form, 1):
+                best = (h[:1].upper() + h[1:], T)
+    return best
+
 class Resolver:
+    def is_name(self, raw):
+        """an unknown capitalised word: a name, unless (German) it splits into dictionary words"""
+        if self.lc != "de": return True
+        if NOUN_END.search(raw): return False
+        return not compound_parts(raw, self.titles_lower, self.nouns, lambda T: any(l in self.nouns for l in self.forms.get(T, ())))
+
     def __init__(self, lc, root):
         self.lc = lc
         self.E = []                                   # entries (dicts from g/lex-<lc>.jsonl)
@@ -58,6 +92,9 @@ class Resolver:
         for fm, ls in self.forms.items():
             for l in ls: self.forms_of[l].add(fm)
         self.forms_or_titles = set(self.forms) | set(self.by_title)
+        self.titles_lower = {}
+        for t in self.by_title: self.titles_lower.setdefault(t.lower(), t)
+        self.nouns = {e["t"] for e in self.E if "noun" in (e.get("p") or [])}
         self.over = {}
         p = os.path.join(root, "review", "reader-overrides.tsv")
         self.over_missing = []

@@ -9,7 +9,7 @@
 (function () {
   "use strict";
   const LANG = { fr: { name: "French", own: "Français" }, de: { name: "German", own: "Deutsch" } };
-  const V = "7"; // reader/ files (bump when reader/ is rebuilt)
+  const V = "8"; // reader/ files (bump when reader/ is rebuilt)
   const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
   const button = (cls, txt, label) => { const b = el("button", cls, txt); b.type = "button"; if (label) b.setAttribute("aria-label", label); return b; };
   const get = (p) => fetch("reader/" + p + "?v=" + V).then((r) => { if (!r.ok) throw new Error(p); return r.json(); });
@@ -396,23 +396,49 @@
     if (n < 0 && L[4]) n = RM().find(L[4]);
     return n;
   }
+  // a German compound the dictionary lacks (Weinhandlung): two map words, the last a noun.
+  // Same rule as compound_parts in scripts/reader_resolve.py. Returns [first, last] map indexes.
+  const LINK = ["", "s", "es", "n", "en", "e", "er"];
+  function compoundOf(word) {
+    const rm = RM(); if (lc !== "de" || !rm || !rm.loaded()) return null;
+    const find = (t) => rm.findIn(LANG.de.name, t);
+    for (let k = 3; k < word.length - 3; k++) {
+      const h = word.slice(0, k), t = word.slice(k), T = t[0].toUpperCase() + t.slice(1), last = find(T);
+      if (last < 0) continue;
+      for (const cut of LINK) {
+        if (cut && !h.toLowerCase().endsWith(cut)) continue;
+        const hh = cut ? h.slice(0, h.length - cut.length) : h; if (hh.length < 3) continue;
+        let first = find(hh[0].toUpperCase() + hh.slice(1)); if (first < 0) first = find(hh.toLowerCase());
+        if (first >= 0) return [first, last];
+      }
+    }
+    return null;
+  }
   function openInlay(L, i, w) {
     const fig = page.querySelector(".ln-inlay"); if (!fig) return;
     const co = fig.querySelector(".ln-co"); co.innerHTML = "";
     const cw = el("span", "ln-co-top"); cw.appendChild(el("b", "ln-co-w", L ? L[0] : w.textContent)); co.appendChild(cw);
-    co.appendChild(el("span", "ln-co-g", L ? L[1] || "—" : i === -2 ? "A name." : "Not in the dictionary yet."));
+    const cp = !L && i === -1 ? compoundOf(w.textContent) : null;
+    if (cp) {
+      // its parts, each with its sense once the map has it; the map shows the last part
+      const g = el("span", "ln-co-g", RM().label(cp[0]) + " + " + RM().label(cp[1])); co.appendChild(g);
+      Promise.all(cp.map((j) => RM().details(j))).then((ds) => {
+        if (!g.isConnected) return;
+        g.textContent = cp.map((j, k) => RM().label(j) + (ds[k] && ds[k].g ? " ‘" + ds[k].g.split(/[;,]/)[0].trim() + "’" : "")).join(" + ");
+      });
+    } else co.appendChild(el("span", "ln-co-g", L ? L[1] || "—" : i === -2 ? "A name." : "Not in the dictionary yet."));
     if (L && L[4]) co.appendChild(el("i", "ln-co-c", (L[5] ? "≈ English " : "cousin of English ") + L[4]));
     const ai = w.dataset.alt != null ? +w.dataset.alt : -1, A = ai >= 0 ? D[lc].lex[ai] : null;
     if (A && A[0] && (A[0] !== (L && L[0]) || A[1] !== (L && L[1]))) co.appendChild(el("i", "ln-co-c", "or " + A[0] + (A[1] ? ": " + A[1] : "")));
     fig.querySelector(".ln-know").hidden = !L || !!(L[7] & 1);
-    const n = mapIndex(L);
+    const n = cp ? cp[1] : mapIndex(L);
     fig.querySelector(".ln-full").hidden = n < 0;
     fig.hidden = false; inlayOpen = true; page.classList.add("ln-inlay-open");
     // keep the tapped line and the window both in view
     const wr = w.getBoundingClientRect(), sr = scroll.getBoundingClientRect();
     if (wr.top < sr.top + 8 || fig.getBoundingClientRect().bottom > sr.bottom) scroll.scrollTop += Math.min(fig.getBoundingClientRect().bottom - sr.bottom + 12, wr.top - sr.top - 60);
     tapped.n = n;
-    if (n >= 0) RM().details(n).then((d) => { if (d && d.ipa && co.isConnected && tapped && tapped.n === n) cw.appendChild(el("span", "ln-co-say", d.ipa.replace(/^\/|\/$/g, ""))); });
+    if (n >= 0 && !cp) RM().details(n).then((d) => { if (d && d.ipa && co.isConnected && tapped && tapped.n === n) cw.appendChild(el("span", "ln-co-say", d.ipa.replace(/^\/|\/$/g, ""))); });
     window.CartaDiv.placeMap();
     if (n >= 0) {
       const rm = RM();
@@ -421,7 +447,7 @@
       // other words of this excerpt from the same family stay marked
       const tree = rm.treeOf(n), fam = [];
       for (const y of cur.w) { const j = idOf(y); if (j >= 0 && j !== i) { const m = mapIndex(D[lc].lex[j]); if (m >= 0 && m !== n && rm.treeOf(m) === tree) fam.push(m); } }
-      rm.setMarks(fam.length ? fam : null);
+      rm.setMarks(cp ? [cp[0]].concat(fam) : fam.length ? fam : null);
       rm.fit(line, 700);
     }
   }
