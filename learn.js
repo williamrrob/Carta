@@ -56,6 +56,19 @@
     clearTimeout(watch);
     if (!plain) watch = setTimeout(() => { if (utter === u && !started) retry(); }, 1800);
   }
+  // a tapped word, said once, slowly (inside the tap, so iOS allows it)
+  let wordU = null;
+  function sayWord(text) {
+    if (!SP || !text) return;
+    if (reading) stopSpeech();
+    const v = voiceFor(lc), u = new SpeechSynthesisUtterance(text);
+    u.lang = v ? v.lang : BCP[lc]; if (v) u.voice = v;
+    u.rate = 0.5;
+    wordU = u;   // held, or Safari collects it before it sounds
+    u.onend = u.onerror = () => { if (wordU === u) wordU = null; };
+    const go = () => { if (wordU === u) { if (SP.paused) SP.resume(); SP.speak(u); } };
+    if (SP.speaking || SP.pending) { SP.cancel(); setTimeout(go, 120); } else go();
+  }
   function listen() {
     if (!SP || !cur) return;
     if (reading) { stopSpeech(); return; }
@@ -367,6 +380,7 @@
       w.classList.add("ln-new");
     }
     openInlay(L, i, w);
+    sayWord(w.textContent);
   }
   // the sentence around a word, kept with it so the quiz can show where you met it
   function ctxOf(w) {
