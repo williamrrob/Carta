@@ -175,14 +175,35 @@
     const d = D[lc]; if (!d.homs) { d.homs = new Map(); d.lex.forEach((L, j) => { if (L[8]) { const a = d.homs.get(L[0]) || []; a.push(j); d.homs.set(L[0], a); } }); }
     const L = d.lex[i]; return L ? (d.homs.get(L[0]) || []).filter((j) => j !== i) : [];
   }
+  // German separable verbs come apart in a main clause: "tut mir … weh" is wehtun "to hurt",
+  // not tun "to do" + weh "sore". For each word, the particle + verb entry it forms with a verb
+  // in the same sentence, if the dictionary has one: { [token k]: lex index of the whole verb }.
+  function sepVerbs(q) {
+    if (lc !== "de") return {};
+    const d = D[lc];
+    if (!d.titleIx) { d.titleIx = new Map(); d.lex.forEach((L, j) => { if (!d.titleIx.has(L[0])) d.titleIx.set(L[0], j); }); }
+    const out = {}, toks = q.w.map((y) => ({ s: y[0], e: y[1], i: idOf(y) }));
+    const sent = (t) => q.t.slice(0, t.s).split(/[.!?;:]/).length;   // which sentence a token is in
+    toks.forEach((p, k) => {
+      const part = q.t.slice(p.s, p.e).toLowerCase(); if (part.length < 2) return;
+      toks.forEach((v, m) => {
+        if (m === k || v.i < 0 || out[k] != null || sent(v) !== sent(p)) return;
+        const V = d.lex[v.i]; if (!V || !/verb/.test(V[2] || "")) return;
+        const j = d.titleIx.get(part + V[0]);
+        if (j != null && /verb/.test(d.lex[j][2] || "")) { out[k] = j; if (out[m] == null) out[m] = j; }
+      });
+    });
+    return out;
+  }
   function judge(q, text) {
     const mine = (text.match(/[A-Za-z]+/g) || []).map((w) => [w, stem(w)]);
-    const got = [], missed = [], hitStems = new Set(), byTitle = new Map(), res = {};
-    for (const y of q.w) {
+    const got = [], missed = [], hitStems = new Set(), byTitle = new Map(), res = {}, sep = sepVerbs(q);
+    for (const [k, y] of q.w.entries()) {
       const i = idOf(y); if (!(i >= 0)) continue;
       const L = D[lc].lex[i]; if (!L || !L[1] || L[7] & 1 || SKIP_POS.test(L[2] || "") || L[3] >= CHECK_MAX_Z) continue;
       if (byTitle.has(L[0])) { res[i] = byTitle.get(L[0]); continue; }
       const gs = senseStems(L[1]); if (!gs.size) continue;
+      if (sep[k] != null) senseStems(D[lc].lex[sep[k]][1] || "").forEach((g) => gs.add(g));   // weh (in "tut … weh"): "hurt" counts
       for (const j of homsOf(i).concat(Array.isArray(y) && y[3] != null ? [y[3]] : [])) { const A = D[lc].lex[j]; if (A && A[0] === L[0] && A[1]) senseStems(A[1]).forEach((g) => gs.add(g)); }
       let hit = null;
       for (const g of gs) for (const [, m] of mine) if (near(m, g)) { hit = m; break; }
@@ -435,6 +456,8 @@
       });
     } else co.appendChild(el("span", "ln-co-g", L ? L[1] || "—" : i === -2 ? "A name." : "Not in the dictionary yet."));
     if (L && L[4]) co.appendChild(el("i", "ln-co-c", (L[5] ? "≈ English " : "cousin of English ") + L[4]));
+    { const k = cur.w.findIndex((y) => y[0] === +w.dataset.s), sv = k >= 0 ? sepVerbs(cur)[k] : null;
+      if (sv != null && sv !== i) co.appendChild(el("i", "ln-co-c", "here part of " + D[lc].lex[sv][0] + ": " + D[lc].lex[sv][1])); }
     const ai = w.dataset.alt != null ? +w.dataset.alt : -1;
     const alts = [...new Set((ai >= 0 ? [ai] : []).concat(i >= 0 ? homsOf(i) : []))];
     for (const j of alts) {
@@ -521,7 +544,8 @@
         const L = D[lc].lex[i]; if (shown.has(L[0])) continue; shown.add(L[0]);
         const li = el("li", r.res[i] ? "ln-got-row" : "ln-miss-row"); li.lang = lc;
         const other = homsOf(i).map((j) => D[lc].lex[j][1]).filter((g) => g && g !== L[1]);
-        li.append(el("b", null, L[0]), document.createTextNode(" " + L[1] + other.map((g) => " · or " + g).join("")));
+        const k = cur.w.indexOf(y), sv = sepVerbs(cur)[k], S = sv != null && sv !== i ? D[lc].lex[sv] : null;
+        li.append(el("b", null, L[0]), document.createTextNode(" " + L[1] + other.map((g) => " · or " + g).join("") + (S ? " · here part of " + S[0] + ": " + S[1] : "")));
         ul.appendChild(li);
       }
       out.appendChild(ul);
