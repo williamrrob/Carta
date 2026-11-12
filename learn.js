@@ -169,6 +169,12 @@
     return out;
   }
   const near = (m, g) => m === g || (g.length >= 4 && m.length >= 4 && (m.startsWith(g.slice(0, 4)) || g.startsWith(m.slice(0, 4))));
+  // the same spelling with another origin (Weide 1 "pasture", Weide 2 "willow"): which one an
+  // excerpt means isn't in the data, so the card shows them all and Check accepts any of them
+  function homsOf(i) {
+    const d = D[lc]; if (!d.homs) { d.homs = new Map(); d.lex.forEach((L, j) => { if (L[8]) { const a = d.homs.get(L[0]) || []; a.push(j); d.homs.set(L[0], a); } }); }
+    const L = d.lex[i]; return L ? (d.homs.get(L[0]) || []).filter((j) => j !== i) : [];
+  }
   function judge(q, text) {
     const mine = (text.match(/[A-Za-z]+/g) || []).map((w) => [w, stem(w)]);
     const got = [], missed = [], hitStems = new Set(), byTitle = new Map(), res = {};
@@ -177,6 +183,7 @@
       const L = D[lc].lex[i]; if (!L || !L[1] || L[7] & 1 || SKIP_POS.test(L[2] || "") || L[3] >= CHECK_MAX_Z) continue;
       if (byTitle.has(L[0])) { res[i] = byTitle.get(L[0]); continue; }
       const gs = senseStems(L[1]); if (!gs.size) continue;
+      for (const j of homsOf(i).concat(Array.isArray(y) && y[3] != null ? [y[3]] : [])) { const A = D[lc].lex[j]; if (A && A[0] === L[0] && A[1]) senseStems(A[1]).forEach((g) => gs.add(g)); }
       let hit = null;
       for (const g of gs) for (const [, m] of mine) if (near(m, g)) { hit = m; break; }
       if (!hit && L[4]) { const c = stem(L[4]); for (const [, m] of mine) if (m.length >= 4 && m.startsWith(c.slice(0, 4))) hit = m; }
@@ -428,8 +435,12 @@
       });
     } else co.appendChild(el("span", "ln-co-g", L ? L[1] || "—" : i === -2 ? "A name." : "Not in the dictionary yet."));
     if (L && L[4]) co.appendChild(el("i", "ln-co-c", (L[5] ? "≈ English " : "cousin of English ") + L[4]));
-    const ai = w.dataset.alt != null ? +w.dataset.alt : -1, A = ai >= 0 ? D[lc].lex[ai] : null;
-    if (A && A[0] && (A[0] !== (L && L[0]) || A[1] !== (L && L[1]))) co.appendChild(el("i", "ln-co-c", "or " + A[0] + (A[1] ? ": " + A[1] : "")));
+    const ai = w.dataset.alt != null ? +w.dataset.alt : -1;
+    const alts = [...new Set((ai >= 0 ? [ai] : []).concat(i >= 0 ? homsOf(i) : []))];
+    for (const j of alts) {
+      const A = D[lc].lex[j];
+      if (A && A[0] && (A[0] !== (L && L[0]) || A[1] !== (L && L[1]))) co.appendChild(el("i", "ln-co-c", "or " + A[0] + (A[1] ? ": " + A[1] : "")));
+    }
     fig.querySelector(".ln-know").hidden = !L || !!(L[7] & 1);
     const n = cp ? cp[1] : mapIndex(L);
     fig.querySelector(".ln-full").hidden = n < 0;
@@ -509,7 +520,8 @@
         const i = idOf(y); if (!(i >= 0) || !(i in r.res)) continue;
         const L = D[lc].lex[i]; if (shown.has(L[0])) continue; shown.add(L[0]);
         const li = el("li", r.res[i] ? "ln-got-row" : "ln-miss-row"); li.lang = lc;
-        li.append(el("b", null, L[0]), document.createTextNode(" " + L[1]));
+        const other = homsOf(i).map((j) => D[lc].lex[j][1]).filter((g) => g && g !== L[1]);
+        li.append(el("b", null, L[0]), document.createTextNode(" " + L[1] + other.map((g) => " · or " + g).join("")));
         ul.appendChild(li);
       }
       out.appendChild(ul);
@@ -673,6 +685,10 @@
     resetLevel(l) { const s = loadState(l); if (!s) return; s.reset = 1; s.cur = null; try { localStorage.setItem(SKEY(l), JSON.stringify(s)); } catch (e) {} if (lc === l) st = s; },
     open(l) { window.CartaDiv.go("Learn"); translate(l); },
     // a word card's example: it becomes your next excerpt
-    queue(l, q) { const s = loadState(l); if (!s) return false; (s.queue = s.queue || []).unshift(q); try { localStorage.setItem(SKEY(l), JSON.stringify(s)); } catch (e) {} return true; },
+    queue(l, q) {
+      const s = loadState(l); if (!s) return false; (s.queue = s.queue || []).unshift(q); try { localStorage.setItem(SKEY(l), JSON.stringify(s)); } catch (e) {}
+      if (st && lc === l && st !== s) (st.queue = st.queue || []).unshift(q);   // Learn open on this language: its copy too, or the next save drops it
+      return true;
+    },
   };
 })();

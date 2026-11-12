@@ -2239,13 +2239,12 @@
       const i = RootMap.find(word);
       if (i < 0) { RootMap.clearFocus(); return; }
       noteWalk(i);
-      // back/forward fly straight back along your walk; new searches trace the lineage
-      const f = (retrace ? RootMap.focus(i, { fly: true, dur: 900 }) : RootMap.trace(i, { onStep: traceCaption })).then(function () { if (mapWord === word) applyLens(); });
+      // straight to the word; the generation-by-generation trace is the card's "See descent"
+      const f = RootMap.focus(i, { fly: true, dur: retrace ? 900 : 700 }).then(function () { if (mapWord === word) applyLens(); });
       return f;
     });
     // never hold an entry hostage to a slow first load or a long flight (but let the trace be read)
-    const n = window.RootMap && RootMap.loaded() && !retrace ? RootMap.traceLength(RootMap.find(word)) : 0;
-    return Promise.race([flight, new Promise(function (r) { setTimeout(r, Math.max(4200, 2400 + n * 1300 + 1200)); })]);
+    return Promise.race([flight, new Promise(function (r) { setTimeout(r, 4200); })]);
   }
 
   // ---- the trace, narrated: one line per generation saying what happened ----
@@ -2335,6 +2334,15 @@
       const bm = el("button", "co-act", isSaved(currentWord) ? "Bookmarked" : "Add Bookmark"); bm.type = "button";
       bm.addEventListener("click", function (e) { e.stopPropagation(); toggleSaved(currentWord); bm.textContent = isSaved(currentWord) ? "Bookmarked" : "Add Bookmark"; });
       acts.appendChild(bm);
+    }
+    // the line of descent, lit one generation at a time, slowly, with a line saying what happened
+    if (RootMap.traceLength(i) >= 3) {
+      const t = el("button", "co-act", "See descent"); t.type = "button";
+      t.addEventListener("click", function (e) {
+        e.stopPropagation();
+        RootMap.trace(i, { onStep: traceCaption, step: 2200 }).then(function () { if (calloutFor === i) applyLens(); });
+      });
+      acts.appendChild(t);
     }
     if (lensable && d && d.dbl && d.dbl.length) {
       const b = el("button", "co-act", d.dbl.length + (d.dbl.length > 1 ? " doublets" : " doublet")); b.type = "button";
@@ -2934,7 +2942,7 @@
     mapWord = "@" + i;
     lowerForFlight();
     noteWalk(i);
-    const flight = navigating ? RootMap.focus(i, { fly: true, dur: 900 }) : RootMap.trace(i);
+    const flight = RootMap.focus(i, { fly: true, dur: navigating ? 900 : 700 });
     const dP = RootMap.details(i);
     await Promise.race([flight, delay(4200)]);
     applyLens();
