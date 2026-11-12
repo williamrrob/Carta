@@ -31,14 +31,13 @@ jobs:
 
       - name: Assemble site
         run: |
+          # the whole site, minus what only development needs (no file list to fall out of date)
           mkdir _site
-          cp index.html editor.html styles.css data.js engine.js app.js \
-             manifest.webmanifest icon.svg morpheme-index.json roots.json eras.json \
-             quiz-pool.json sw.js _site/
-          cp -r words _site/
-          cp -r usage _site/
-          cp -r family _site/
-          cp -r trees _site/
+          rsync -a --exclude .git --exclude .github --exclude .githooks --exclude node_modules \
+            --exclude scripts --exclude test --exclude review --exclude vendor-data --exclude g \
+            ./ _site/
+          touch _site/.nojekyll
+          du -sh _site
 
       - name: Configure Pages (auto-enable)
         uses: actions/configure-pages@v5
