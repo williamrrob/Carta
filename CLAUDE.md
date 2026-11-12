@@ -112,7 +112,7 @@ editor were retired (Oct 2026) — don't reintroduce parallel sources.
 **Installed app (iOS home screen).** iOS under-reports the viewport in standalone mode;
 index.html sets `--vgap` (screen minus reported height) and every bottom-pinned fixed layer
 reaches down by it (looks.css "STANDALONE GAP"). New fixed layers anchored to the bottom must
-use `calc(... - var(--vgap, 0px))`. Icons: `icon-180/192/512.png` (iOS ignores SVG touch icons),
+use `calc(... - var(--vgap, 0px))`. Icons: `icon2-180/192/512.png` (iOS ignores SVG touch icons; Safari caches touch icons by URL, so a new icon needs a new file name — bump the prefix),
 rendered from `icon.svg`. "Check for updates" compares `<meta name="carta-build">` with the live
 copy — **bump that meta on every deploy**. Never touch speechSynthesis/audio at load (it pauses
 the user's music on iOS). No "Wiktionary" in user-visible text.
