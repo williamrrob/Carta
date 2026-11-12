@@ -173,3 +173,11 @@
 .app[data-div] .dv-page.ln-page.ln-typing:not([hidden]) { bottom: calc(10px + max(env(safe-area-inset-bottom), var(--kb, 0px))); }
 /* a page open over the map has its own ×, so the hand steps aside (it comes back on the map and while swapped) */
 .app[data-div]:not([data-div=""]):not([data-div="Explore"]):not([data-swap="1"]) .orb { display: none; }
+/* Learn is a screen, not a card over the map: edge to edge, no frame */
+.app[data-div] .dv-page.ln-page:not([hidden]) { left: 0; right: 0; top: 0; bottom: 0; }
+.app[data-div] .dv-page.ln-page.ln-typing:not([hidden]) { bottom: var(--kb, 0px); }
+:root .app[data-div] .dv-page.ln-page:not([hidden]) .ln-scroll { padding-top: calc(env(safe-area-inset-top) + 16px); padding-bottom: calc(env(safe-area-inset-bottom) + 20px); }
+:root.standalone .app[data-div] .dv-page.ln-page:not([hidden]) .ln-scroll { padding-top: calc(env(safe-area-inset-top) + 28px); }
+.ln-page > .dv-close { top: calc(env(safe-area-inset-top) + 10px); right: 12px; }
+:root.standalone .ln-page > .dv-close { top: calc(env(safe-area-inset-top) + 22px); }
+.ln-page .ln-bottom, .ln-page .ln-landing, .ln-page .ln-quiz { padding-bottom: 8px; }   /* no hand to clear on this page */

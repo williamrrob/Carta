@@ -799,3 +799,4 @@ button, input, select, textarea, .alpha-tab, .save-btn { font-family: inherit; }
 :root[data-look="priestley"] .ex-star { border: 0; background: none; min-width: 44px; min-height: 44px; font-size: 17px; color: var(--ink); cursor: pointer; }
 :root[data-look="priestley"] .node-head { position: relative; }
 :root[data-look="priestley"] .node-star { position: absolute; right: 0; top: 0; }
+:root[data-look="priestley"] .dv-page.ln-page { border: 0; outline: 0; }
