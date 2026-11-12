@@ -165,3 +165,6 @@
 
 /* installed iOS app: the system blurs content just under the status bar; pages start below it */
 :root.standalone .app[data-div] .dv-page:not([hidden]) { top: calc(env(safe-area-inset-top) + 24px); }
+.dv-close { position: absolute; top: 4px; right: 6px; z-index: 2; }
+.dv-page:has(.ln-head .ln-close, .ln-quiz .ln-close) > .dv-close { display: none; }
+.dv-page > .dv-head, .dv-scroll > .dv-head:first-child, .dv-scroll > :first-child > .dv-head:first-child { padding-right: 34px; }

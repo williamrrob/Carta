@@ -35,6 +35,8 @@
     for (const n of NAMES.slice(1)) {
       const p = el("section", "dv-page"); p.dataset.div = n; p.hidden = true; p.setAttribute("aria-label", n);
       app.appendChild(p); pages[n] = p;
+      // every page can be left for the map (Learn's reading views keep their own × back to Learn's landing)
+      const x = button("dv-close ln-close", "×", "Close, back to the map"); x.addEventListener("click", () => go("Explore")); p.appendChild(x);
       p.addEventListener("transitionend", (e) => { if (e.target === p) placeMap(); }); // a window measured mid-slide is re-measured once the page settles
     }
     strip = button("dv-strip", null, "Back to the page"); strip.hidden = true;
