@@ -117,12 +117,16 @@
   const unknownIn = (q) => { const u = new Set(); let n = 0; for (const x of q.w) { const i = idOf(x); n++; if (isName(i)) continue; if (i < 0 || !known(i)) u.add(i < 0 ? "?" + n : i); } return u; };
   const keyOf = (q) => q.a + "|" + q.t.slice(0, 40);
 
+  // a sentence break inside the excerpt: end punctuation, then (after a quote or dash) a capital
+  const MULTI = /[.!?…»"”]\s+[«"“—–-]?\s*[A-ZÀ-ÖØ-Þ]/;
   async function pick() {
     const d = D[lc], ids = [...Array(d.idx.bands.length).keys()];
     const good = [], near = []; let fewest = null, fewestShare = 2;
+    const oneOnly = levelOf(lc, st) === 0;   // the first level: one sentence at a time
     for (const b of ids) {
       for (const q of await band(b)) {
         if (st.seen[keyOf(q)]) continue;
+        if (oneOnly && MULTI.test(q.t.trim())) continue;
         if (st.queue && st.queue.length) break;
         const u = unknownIn(q).size, cov = 1 - u / q.w.length;
         if (u >= 1 && u <= 3 && cov >= 0.85) good.push(q); else if (u <= 6 && cov >= 0.7) near.push([u, q]);
@@ -300,6 +304,11 @@
     ta.addEventListener("input", () => { wrap.dataset.v = ta.value; foot(); });
     // tapping your English while the map is open: the map closes, the keyboard comes back (focus in the tap)
     ta.addEventListener("pointerdown", () => { if (inlayOpen) closeInlay(); });
+    // the keyboard must not push the excerpt off the top: the first tap focuses without
+    // scrolling, the page shrinks to sit above the keyboard (ln-typing, --kb) and stays at the top
+    ta.addEventListener("touchstart", (e) => { if (document.activeElement !== ta) { e.preventDefault(); if (inlayOpen) closeInlay(); ta.focus({ preventScroll: true }); } }, { passive: false });
+    ta.addEventListener("focus", () => { page.classList.add("ln-typing"); pin(); });
+    ta.addEventListener("blur", () => { page.classList.remove("ln-typing"); });
     ta.addEventListener("keydown", (e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); doCheck(); } });
     wrap.appendChild(ta);
     bottom.appendChild(wrap);
@@ -307,6 +316,10 @@
     const f = el("div", "ln-foot"); bottom.appendChild(f);
     scroll.append(top, fig, bottom);
     if (st.checked) doCheck(true); else foot();
+  }
+  function pin() {
+    const go = () => { if (!page.classList.contains("ln-typing")) return; if (window.scrollY || (window.visualViewport && window.visualViewport.offsetTop)) window.scrollTo(0, 0); scroll.scrollTop = 0; };
+    go(); requestAnimationFrame(go); setTimeout(go, 120); setTimeout(go, 350); setTimeout(go, 700);
   }
   function foot() {
     const f = page.querySelector(".ln-foot"); if (!f) return;
@@ -408,7 +421,12 @@
     if (!tapped || tapped.n < 0) return;
     const n = tapped.n;
     closeInlay();
-    window.CartaDiv.swap(true, () => { const inf = RM().info(n); if (inf && inf.isWord) Carta.run(inf.label); else Carta.openNode(n, true); });
+    // the word's own point opens, its card shows, and the map centres on it (not on its whole line)
+    window.CartaDiv.swap(true, () => {
+      const inf = RM().info(n);
+      Promise.resolve(inf && inf.isWord ? Carta.run(inf.label) : Carta.openNode(n, true))
+        .then(() => { const rm = RM(); if (rm && rm.focus) rm.focus(n, { fly: true, dur: 600 }); });
+    });
   }
 
   // ---- check ----
@@ -550,6 +568,7 @@
       const follow = () => { if (inlayOpen) window.CartaDiv.placeMap(); };
       scroll.addEventListener("scroll", follow, { passive: true });
       if (window.visualViewport) window.visualViewport.addEventListener("resize", follow);
+      if (window.visualViewport) window.visualViewport.addEventListener("scroll", () => { if (page.classList.contains("ln-typing") && window.visualViewport.offsetTop > 0) window.scrollTo(0, 0); });
     },
     enter() {
       const s = S.get();

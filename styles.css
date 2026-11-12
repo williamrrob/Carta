@@ -100,7 +100,8 @@ body {
      positioned ancestor, so the absolutely-positioned dock/overlays anchor to it. */
   position: fixed;
   inset: 0;
-  bottom: calc(0px - var(--vgap, 0px)); /* --vgap: index.html (installed, iOS under-reports the viewport) */
+  /* not stretched by --vgap: newer iOS clips everything below the reported viewport, and the
+     card, dock and overlays anchor to this box's bottom (only the map's ground reaches down) */
   display: flex;
   flex-direction: column;
   max-width: 720px;

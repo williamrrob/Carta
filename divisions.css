@@ -168,3 +168,7 @@
 .dv-close { position: absolute; top: 4px; right: 6px; z-index: 2; }
 .dv-page:has(.ln-head .ln-close, .ln-quiz .ln-close) > .dv-close { display: none; }
 .dv-page > .dv-head, .dv-scroll > .dv-head:first-child, .dv-scroll > :first-child > .dv-head:first-child { padding-right: 34px; }
+/* typing your English: the page ends just above the keyboard, so nothing has to scroll out of the way */
+.app[data-div] .dv-page.ln-page.ln-typing:not([hidden]) { bottom: calc(10px + max(env(safe-area-inset-bottom), var(--kb, 0px))); }
+/* a page open over the map has its own ×, so the hand steps aside (it comes back on the map and while swapped) */
+.app[data-div]:not([data-div=""]):not([data-div="Explore"]):not([data-swap="1"]) .orb { display: none; }
