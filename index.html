@@ -59,6 +59,28 @@
       function recheck() { update(); setTimeout(update, 100); setTimeout(update, 350); setTimeout(update, 600); }
       document.addEventListener("focusin", recheck);
       document.addEventListener("focusout", recheck);
+      /* Installed iOS app: once the keyboard has opened, WebKit can leave the viewport
+         ~59pt short for the rest of the session and CLIP everything below it (the nav
+         row and orb cut in half over a dead band) — --vgap can't reach past a clip.
+         Hiding the full-height body for one synchronous reflow makes WebKit measure the
+         viewport again. Only when it is short and no keyboard is up; scroll kept. */
+      var healing = false;
+      function heal() {
+        if (!iosApp || healing || !document.body) return;
+        if (appH() - window.innerHeight <= 4) return;            // not stuck
+        if (vv && window.innerHeight - vv.height > 120) return;  // keyboard still up
+        healing = true;
+        var sc = [].filter.call(document.querySelectorAll("[class*='scroll'], .content, .dv-page"), function (n) { return n.scrollTop > 0; })
+          .map(function (n) { return [n, n.scrollTop]; });
+        var b = document.body, was = b.style.display;
+        b.style.display = "none"; void b.offsetHeight; b.style.display = was;
+        sc.forEach(function (p) { p[0].scrollTop = p[1]; });
+        update(); setTimeout(update, 120);
+        setTimeout(function () { healing = false; }, 400);
+      }
+      document.addEventListener("focusout", function () { setTimeout(heal, 160); setTimeout(heal, 500); });
+      document.addEventListener("visibilitychange", function () { if (!document.hidden) setTimeout(heal, 160); });
+      window.addEventListener("pageshow", function () { setTimeout(heal, 160); });
     })();
   </script>
   <meta name="theme-color" content="#1c2541" />
@@ -72,7 +94,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Carta" />
-  <meta name="carta-build" content="2026-11-12.6" />
+  <meta name="carta-build" content="2026-11-12.7" />
   <link rel="apple-touch-icon" href="icon2-180.png" />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
   <link rel="manifest" href="manifest.webmanifest" />
