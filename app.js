@@ -2877,7 +2877,7 @@
     const lc = lang === "French" ? "fr" : lang === "German" ? "de" : null;
     if (!lc || !window.CartaLearn) return null;
     let rows;
-    try { rows = (await (await fetch("graph/ex/" + Math.floor(i / 1024) + ".json?v=2")).json())[i]; } catch (e) { return null; }
+    try { rows = (await (await fetch("graph/ex/" + Math.floor(i / 1024) + ".json?v=3")).json())[i]; } catch (e) { return null; }
     if (token !== runToken || !rows || !rows.length) return null;
     const card = el("div", "card ex-card");
     card.appendChild(el("div", "cap", "Examples"));

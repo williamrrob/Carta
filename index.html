@@ -22,16 +22,22 @@
          app itself never moves or resizes, none of the visualViewport timing/stale
          quirks can misposition it — worst case the dock lift is briefly off. */
       /* Installed to the home screen, iOS can report a viewport shorter than the
-         screen (the app then stops ~90pt above the bottom edge). A standalone app
-         always owns the whole screen, so size it from the screen itself. */
+         screen (the app then stops ~90pt above the bottom edge). There the app
+         owns the whole screen, so size it from the screen itself. Only there: an
+         installed app on a Mac (or an iPad in a split view) is a window smaller
+         than the screen, and sizing it from the screen pushed the orb, the nav row
+         and the bottom of every page out of the window. So: iOS only, the window as
+         wide as the screen, and the shortfall no bigger than iOS's bars. */
       var standalone = !!(navigator.standalone || (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches));
       if (standalone) root.classList.add("standalone");
+      var iosApp = navigator.standalone === true && navigator.maxTouchPoints > 0;
       function appH() {
         var h = window.innerHeight;
-        if (standalone && window.screen && screen.height) {
+        if (iosApp && window.screen && screen.height) {
           var land = window.innerWidth > window.innerHeight;
           var sh = land ? Math.min(screen.width, screen.height) : Math.max(screen.width, screen.height);
-          if (sh > h) h = sh;
+          var sw = land ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height);
+          if (sh > h && sh - h <= 160 && Math.abs(sw - window.innerWidth) <= 2) h = sh;
         }
         return h;
       }
@@ -66,7 +72,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Carta" />
-  <meta name="carta-build" content="2026-11-12.1" />
+  <meta name="carta-build" content="2026-11-12.2" />
   <link rel="apple-touch-icon" href="icon-180.png" />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
   <link rel="manifest" href="manifest.webmanifest" />
@@ -74,7 +80,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&amp;family=Libre+Caslon+Display&amp;family=IM+Fell+English:ital@0;1&amp;family=IM+Fell+English+SC&amp;family=Overpass:ital,wght@0,400;0,600;0,700;1,600&amp;family=Overpass+Mono:wght@400;600&amp;family=Old+Standard+TT:ital,wght@0,400;0,700;1,400&amp;family=Playfair+Display:ital,wght@0,400;0,700;1,400&amp;family=Playfair+Display+SC:wght@400;700&amp;family=Tinos:ital,wght@0,400;0,700;1,400&amp;family=Arimo:wght@400;700&amp;family=Cousine&amp;display=swap" />
-  <link rel="stylesheet" href="styles.css?v=148" />
+  <link rel="stylesheet" href="styles.css?v=149" />
   <link rel="stylesheet" href="looks.css?v=19" />
   <link rel="stylesheet" href="divisions.css?v=9" />
 </head>
@@ -229,8 +235,8 @@
   <script defer src="engine.js?v=61"></script>
   <script defer src="etym-parse.js?v=4"></script>
   <script defer src="graph.js?v=23"></script>
-  <script defer src="app.js?v=184"></script>
+  <script defer src="app.js?v=185"></script>
   <script defer src="divisions.js?v=8"></script>
-  <script defer src="learn.js?v=9"></script>
+  <script defer src="learn.js?v=10"></script>
 </body>
 </html>

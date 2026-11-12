@@ -9,7 +9,7 @@
 (function () {
   "use strict";
   const LANG = { fr: { name: "French", own: "Français" }, de: { name: "German", own: "Deutsch" } };
-  const V = "6"; // reader/ files (bump when reader/ is rebuilt)
+  const V = "7"; // reader/ files (bump when reader/ is rebuilt)
   const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
   const button = (cls, txt, label) => { const b = el("button", cls, txt); b.type = "button"; if (label) b.setAttribute("aria-label", label); return b; };
   const get = (p) => fetch("reader/" + p + "?v=" + V).then((r) => { if (!r.ok) throw new Error(p); return r.json(); });
@@ -213,7 +213,10 @@
     try { await load(lc); } catch (e) { scroll.innerHTML = '<div class="ln-block"><p class="ln-note">Couldn’t load the excerpts.</p></div>'; return; }
     st = loadState(lc);
     if (!st || st.reset) return placement();
-    if (st.cur && st.cur.t) { cur = st.cur; render(); } else next(false);
+    // the marks belong to one excerpt: without this, a Check left every later excerpt "checked"
+    // (taps did nothing, and Next stood where Check should be)
+    checked = null; tapped = null;
+    if (st.cur && st.cur.t && !/^\s*Translation\s*:/.test(st.cur.t)) { cur = st.cur; render(); } else next(false);
   }
   async function next(commit) {
     if (commit && cur) {
@@ -232,7 +235,7 @@
     let q = null;
     if (st.queue && st.queue.length) q = st.queue.shift();
     if (!q) q = await pick();
-    cur = q; tappedHere = new Set();
+    cur = q; tappedHere = new Set(); checked = null; tapped = null;
     if (q && !q.conv) { q.w = q.w.map((x) => [x[0], x[0] + x[1], x[2], x[3]]); q.conv = 1; }
     st.cur = q; st.draft = ""; st.checked = null; save();
     if (!q) { scroll.innerHTML = ""; const b = el("div", "ln-block"); b.append(header(false), el("p", "ln-note", "Nothing left at this level.")); scroll.appendChild(b); return; }

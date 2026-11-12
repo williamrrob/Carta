@@ -194,6 +194,8 @@ def build(lc):
         if t.startswith("„") and t.endswith("“") and t.count("„") == 1: t = t[1:-1].strip()
         if not t or t in seen: continue
         seen.add(t)
+        # a citation line standing where the sentence goes ("Translation: 1970, Hannah Arendt: On Violence. … page 81:")
+        if re.search(r"^\s*(?:Translation|Übersetzung|Traduction)\s*:|^\W*\d{4},\s+[A-ZÀ-Ý]|\bISBN\b", t): continue
         toks = list(R.tokens(t))
         if not (6 <= len(toks) <= 45): continue
         ws = []; unk = 0; hard = 0; counted = 0

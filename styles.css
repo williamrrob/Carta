@@ -68,6 +68,10 @@
 
 * { box-sizing: border-box; margin: 0; }
 html, body { height: 100%; }
+/* The page itself never scrolls or rubber-bands (a two-finger scroll on a Mac trackpad over the
+   language line or the nav row dragged the whole window, fixed controls and all): only the
+   panels inside it scroll. */
+html, body { overflow: hidden; overscroll-behavior: none; }
 /* Paint the root (and the overscroll / safe-area behind Safari's bars) the
    theme colour so there are no white strips top and bottom. */
 html { background: var(--bg); }

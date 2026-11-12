@@ -33,6 +33,9 @@ LN = {"fr": "French", "de": "German"}
 def real_en(t, en): return bool(en) and len(en.split()) >= max(3, 0.45 * len(t.split()))
 # a periodical's name standing where an author goes (L'Anthropologie, Revue …, Bulletin …)
 JOURNAL = re.compile(r"^(?:L[’']|Le |La |Les |Der |Die |Das )?[A-ZÀ-Ý][\w’'-]*(?:ologie|ographie|Zeitung|Zeitschrift|Blatt)$|^(?:Revue|Bulletin|Annales|Journal|Mercure|Archiv)\b")
+# a citation line standing where the quoted sentence goes (the dictionary's example was laid out
+# wrongly: "Translation: 1970, Hannah Arendt: On Violence. … page 81:")
+CITATION = re.compile(r"^\s*(?:Translation|Übersetzung|Traduction)\s*:|^\W*\d{4},\s+[A-ZÀ-Ý]|\bISBN\b")
 BOOKREF = re.compile(r"→ISBN|\bpages? \d|\bchapter\b|\bvolume\b|\b[Aa]ct [IVX\d]|\bcanto\b|\bbook [IVX\d]")
 
 def synth_root(lc):
@@ -87,7 +90,7 @@ def run(lc, dumps):
         t = re.sub(r"\s+", " ", t).strip()
         if t.startswith("„") and t.endswith("“") and t.count("„") == 1: t = t[1:-1].strip()
         en = re.sub(r"\s+", " ", en).strip()
-        if not real_en(t, en): continue
+        if not real_en(t, en) or CITATION.search(t): continue
         if t in by_text:                                  # already an excerpt: give it its English
             if not by_text[t].get("en"): by_text[t]["en"] = en; enriched += 1
             continue
@@ -113,6 +116,7 @@ def run(lc, dumps):
             counted += 1
             if not (R.z(E["t"]) >= 5.0 or transparent.get(E["t"])): hard += 1
         if counted == 0 or unk > max(2, counted // 6): continue
+        if sum(1 for x in ws if x[2] < 0) > len(ws) / 2: continue   # mostly names and unknowns: a heading or a list, not a sentence
         if m: author = m.group(1)
         else:
             author = re.split(r"\s*[,:(]\s*", re.sub(r"^\W*\d{4},?\s*", "", ref))[0].strip()
@@ -126,6 +130,8 @@ def run(lc, dumps):
         if m: q["c"] = 1
         by_text[t] = q; per_author[author] += 1; added += 1
     dropped = 0
+    for k in [k for k, q in by_text.items() if CITATION.search(q["t"]) or sum(1 for x in q["w"] if x[2] < 0) > len(q["w"]) / 2]:
+        per_author[by_text[k]["a"]] -= 1; del by_text[k]   # and for excerpts already served
     for q in by_text.values():                            # the same test for English already served
         if q.get("en") and not real_en(q["t"], q["en"]): del q["en"]; dropped += 1
     kept = sorted(by_text.values(), key=lambda q: q["h"])
