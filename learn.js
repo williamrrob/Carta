@@ -360,7 +360,6 @@
 
   // ---- tap a word: the keyboard drops, the map opens between the excerpt and your English ----
   function tapWord(w, i) {
-    if (checked) return;
     // the same word again hides the map window
     if (inlayOpen && tapped && tapped.w === w) { closeInlay(); return; }
     const ta = page.querySelector(".ln-you"); if (ta) ta.blur();
@@ -368,7 +367,8 @@
     w.classList.add("ln-sel");
     const L = i >= 0 ? D[lc].lex[i] : null;
     tapped = { w, i, surface: w.textContent };
-    if (L && !(L[7] & 1)) {
+    // after Check a tap is just a look: the check already put your misses on your words
+    if (L && !(L[7] & 1) && !checked) {
       // a tap means "show me": the word joins your words unless you say you know it
       const K = wk(L);
       if (!tappedHere.has(K)) {
@@ -635,7 +635,7 @@
     again() { landing(); },
     leave() { stopSpeech(); closeInlay(); },
     back() { // the strip tapped: back on the page with the map window as it was
-      if (view === "tr" && tapped && tapped.w && tapped.w.isConnected && !checked) { const t = tapped; setTimeout(() => { if (!window.CartaDiv.swapped()) { t.w.classList.add("ln-sel"); tapped = t; openInlay(t.i >= 0 ? D[lc].lex[t.i] : null, t.i, t.w); } }, 340); }
+      if (view === "tr" && tapped && tapped.w && tapped.w.isConnected) { const t = tapped; setTimeout(() => { if (!window.CartaDiv.swapped()) { t.w.classList.add("ln-sel"); tapped = t; openInlay(t.i >= 0 ? D[lc].lex[t.i] : null, t.i, t.w); } }, 340); }
     },
     window() {
       if (!inlayOpen || !page) return null;
