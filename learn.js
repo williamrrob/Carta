@@ -25,22 +25,43 @@
     if (!SP) return null;
     const vs = SP.getVoices().filter((v) => v.lang && v.lang.replace("_", "-").toLowerCase().startsWith(lc));
     if (!vs.length) return null;
-    const best = (v) => (v.lang.replace("_", "-") === BCP[lc] ? 4 : 0) + (/premium|enhanced|natural|neural/i.test(v.name) ? 2 : 0) + (v.localService ? 1 : 0);
+    // the Mac lists a row of novelty and synthesizer voices under every language (Eddy, Flo, Grandma…,
+    // Bells, Zarvox…): they come last. The language's own named voices and the system default come first.
+    const NOVEL = /^(Eddy|Flo|Grandma|Grandpa|Reed|Rocko|Sandy|Shelley|Albert|Bad News|Bahh|Bells|Boing|Bubbles|Cellos|Good News|Jester|Organ|Superstar|Trinoids|Whisper|Wobble|Zarvox|Fred|Junior|Kathy|Ralph)\b/i;
+    const OWN = { de: /^(Anna|Petra|Markus|Viktor|Yannick|Helena|Martin)\b/i, fr: /^(Thomas|Amélie|Amelie|Audrey|Aurélie|Aurelie|Marie|Jacques|Daniel)\b/i };
+    const best = (v) => (NOVEL.test(v.name) ? -8 : 0) + (v.lang.replace("_", "-") === BCP[lc] ? 4 : 0) + (/premium|enhanced|natural|neural|siri/i.test(v.name) ? 2 : 0) + (OWN[lc].test(v.name) ? 2 : 0) + (v.default ? 1 : 0) + (v.localService ? 1 : 0);
     return vs.sort((a, b) => best(b) - best(a))[0];
   }
-  let reading = false;
-  function stopSpeech() { if (SP && reading) SP.cancel(); reading = false; if (page) page.querySelectorAll(".ln-reading").forEach((x) => x.classList.remove("ln-reading")); const b = page && page.querySelector(".ln-listen"); if (b) b.textContent = "Listen"; }
-  function listen() {
-    if (!SP || !cur) return;
-    if (reading) { stopSpeech(); return; }
-    const v = voiceFor(lc), u = new SpeechSynthesisUtterance(cur.t);
+  let reading = false, utter = null, watch = 0;
+  function stopSpeech() { clearTimeout(watch); if (SP && reading) SP.cancel(); reading = false; utter = null; if (page) page.querySelectorAll(".ln-reading").forEach((x) => x.classList.remove("ln-reading")); const b = page && page.querySelector(".ln-listen"); if (b) b.textContent = "Listen"; }
+  // Safari (Mac above all) loses speech in three ways, each handled here: speak() straight after
+  // cancel() is swallowed (so cancel only when something is playing, and then wait a moment); an
+  // utterance nobody holds on to is collected before it sounds (so `utter` holds it); and some
+  // listed voices are not installed and play silence (so if nothing has started after a moment,
+  // say it again with the system's own voice for the language).
+  function say(plain) {
+    const v = plain ? null : voiceFor(lc), u = new SpeechSynthesisUtterance(cur.t);
     u.lang = v ? v.lang : BCP[lc]; if (v) u.voice = v;
     u.rate = RATES[+pref("rate", "0") || 0] * 0.95;
     const spans = [...page.querySelectorAll(".ln-ex .ln-w")];
-    u.onboundary = (e) => { if (e.name === "word" || e.name == null) spans.forEach((x) => x.classList.toggle("ln-reading", +x.dataset.s <= e.charIndex && e.charIndex < +x.dataset.e)); };
-    u.onend = u.onerror = () => stopSpeech();
-    SP.cancel(); SP.speak(u); reading = true;
+    let started = false;
+    u.onstart = () => { started = true; };
+    u.onboundary = (e) => { started = true; if (e.name === "word" || e.name == null) spans.forEach((x) => x.classList.toggle("ln-reading", +x.dataset.s <= e.charIndex && e.charIndex < +x.dataset.e)); };
+    u.onend = () => { if (utter === u) stopSpeech(); };
+    const retry = () => { if (u.again) return; u.again = 1; SP.cancel(); setTimeout(() => { if (utter === u) say(true); }, 120); };
+    u.onerror = () => { if (utter !== u || u.again) return; if (!started && !plain) retry(); else stopSpeech(); };
+    utter = u; reading = true;
+    if (SP.paused) SP.resume();
+    SP.speak(u);
+    clearTimeout(watch);
+    if (!plain) watch = setTimeout(() => { if (utter === u && !started) retry(); }, 1800);
+  }
+  function listen() {
+    if (!SP || !cur) return;
+    if (reading) { stopSpeech(); return; }
     page.querySelector(".ln-listen").textContent = "Stop";
+    if (SP.speaking || SP.pending) { SP.cancel(); reading = true; setTimeout(() => { if (reading && !utter) say(false); }, 120); }
+    else say(false);
   }
 
   // ---- data ----
@@ -57,7 +78,8 @@
   // ---- progress (as the reader kept it) ----
   const SKEY = (lc) => "carta.read." + lc;
   function loadState(l) { try { const s = JSON.parse(localStorage.getItem(SKEY(l))); if (s && s.v === 2) return s; } catch (e) {} return null; }
-  function save() { if (st) try { localStorage.setItem(SKEY(lc), JSON.stringify(st)); } catch (e) {} }
+  // mt (and m on a word, a time on a word you know) let two devices' copies be merged: sync.js
+  function save() { if (st) { st.mt = Date.now(); try { localStorage.setItem(SKEY(lc), JSON.stringify(st)); } catch (e) {} if (window.CartaSync) CartaSync.touch(); } }
   const LEVELS = { fr: [[0, "None yet", 999, "Mostly cognates to start"], [1, "A little", 55, "The few hundred commonest words"], [2, "Some", 45, "Can read simple sentences"], [3, "Plenty", 38, "Reads with a dictionary"]],
     de: [[0, "None yet", 999, "Mostly cognates to start"], [1, "High school, rusty", 52, "The commonest words come back fast"], [2, "Some", 45, "Can read simple sentences"], [3, "Plenty", 38, "Reads with a dictionary"]] };
   const levelOf = (l, s) => Math.max(0, LEVELS[l].filter((x) => s.z <= x[2]).length - 1);
@@ -66,11 +88,11 @@
   const wk = (L) => (L[8] ? L[0] + "#" + L[8] : L[0]);
   function lrn(w) { const x = st.learn[w]; if (x == null) return null; if (typeof x === "number") st.learn[w] = { n: x, s: 0, due: 0 }; return st.learn[w]; }
   const isDue = (x) => x && x.due <= Date.now();
-  function lapse(x) { if (x.s > 0 || x.n > 0) x.e = Math.max(0.55, (x.e || 1) - (x.s > 0 ? 0.2 : 0.1)); x.n++; x.s = 0; }
+  function lapse(x) { if (x.s > 0 || x.n > 0) x.e = Math.max(0.55, (x.e || 1) - (x.s > 0 ? 0.2 : 0.1)); x.n++; x.s = 0; x.m = Date.now(); }
   // read past it (or picked it in the quiz) once it had faded a little: it held
   function held(w, x, now) {
-    x.s++;
-    if (x.s >= INT.length) { delete st.learn[w]; st.known[w] = 1; st.grad = (st.grad || 0) + 1; }
+    x.s++; x.m = Date.now();
+    if (x.s >= INT.length) { delete st.learn[w]; st.known[w] = Date.now(); st.grad = (st.grad || 0) + 1; }
     else { x.e = Math.min(1.6, (x.e || 1) + 0.04); x.due = now + INT[x.s] * (x.e || 1) * (0.85 + Math.random() * 0.3); }
   }
   function adapt(r, n) {
@@ -201,7 +223,7 @@
   function header(withListen) {
     const h = el("header", "dv-head ln-head");
     h.appendChild(el("span", "sc", LANG[lc].own));
-    if (withListen && SP && voiceFor(lc)) { const b = button("ln-listen sc", "Listen"); b.addEventListener("click", listen); h.appendChild(b); }
+    /* shown even before the voice list arrives (Safari fills it late): the language alone is enough to speak */ if (withListen && SP) { const b = button("ln-listen sc", "Listen"); b.addEventListener("click", listen); h.appendChild(b); }
     const x = button("ln-close", "×", "Close"); x.addEventListener("click", landing); h.appendChild(x);
     return h;
   }
@@ -229,6 +251,7 @@
       }
       st.days = st.days || {}; st.days[today()] = (st.days[today()] || 0) + 1;
       st.seen[keyOf(cur)] = 1; st.n++;
+      save();   // before the wait below: a sync landing meanwhile reads what's stored
     }
     scroll.innerHTML = '<div class="ln-block">' + '<p class="ln-note">Finding an excerpt…</p></div>';
     // an example queued from a word card comes first
@@ -376,7 +399,7 @@
   function iKnow() {
     if (!tapped) return;
     const L = tapped.i >= 0 ? D[lc].lex[tapped.i] : null;
-    if (L) { const K = wk(L); delete st.learn[K]; tappedHere.delete(K); st.known[K] = 1; st.undo = { k: K, d: Date.now() }; save(); tapped.w.classList.remove("ln-new"); }
+    if (L) { const K = wk(L); delete st.learn[K]; tappedHere.delete(K); st.known[K] = Date.now(); st.undo = { k: K, d: Date.now() }; save(); tapped.w.classList.remove("ln-new"); }
     closeInlay();
     const ta = page.querySelector(".ln-you"); if (ta) ta.focus({ preventScroll: true }); // inside the tap, so iOS raises the keyboard
   }
@@ -493,7 +516,7 @@
       b.addEventListener("click", () => {
         if (opts.dataset.done) return; opts.dataset.done = 1;
         const now = Date.now();
-        if (right) { qz.right++; if (it.x.due <= now) held(it.k, it.x, now); else it.x.e = Math.min(1.6, (it.x.e || 1) + 0.04); }
+        if (right) { qz.right++; if (it.x.due <= now) held(it.k, it.x, now); else { it.x.e = Math.min(1.6, (it.x.e || 1) + 0.04); it.x.m = now; } }
         else { lapse(it.x); it.x.due = now + INT[0]; }
         save();
         opts.querySelectorAll(".ln-opt").forEach((o) => { if (o.textContent === b.textContent) o.classList.add(right ? "ln-right" : "ln-wrong"); });
@@ -557,6 +580,12 @@
       return { cap: "Learn · " + (lc ? LANG[lc].own : ""), body: b };
     },
   });
+  // another device's progress arrived (sync.js merged it into what's stored): carry on from it.
+  // The excerpt on screen and your half-written English are this device's own and stay.
+  window.addEventListener("carta-sync", () => {
+    if (lc && st) { const s = loadState(lc); if (s) st = s; }
+    if (page && view === "landing" && !page.hidden) landing();
+  });
   // older entry points (map menu) land here now
   window.CartaReader = { open(l) { window.CartaDiv.go("Learn"); translate(l); }, close() {} };
   window.CartaLearn = {
@@ -564,7 +593,7 @@
     words(l) { const s = loadState(l); return s ? s.learn : {}; },
     lex(l) { return load(l).then(() => D[l].lex); },
     // "I know this" taken back: the word goes back on your pile
-    undoKnow(l, k) { const s = loadState(l); if (!s) return; delete s.known[k]; s.learn[k] = { n: 1, s: 0, due: Date.now() }; s.undo = null; try { localStorage.setItem(SKEY(l), JSON.stringify(s)); } catch (e) {} if (st && lc === l) st = s; },
+    undoKnow(l, k) { const s = loadState(l); if (!s) return; delete s.known[k]; s.learn[k] = { n: 1, s: 0, due: Date.now(), m: Date.now() }; s.undo = null; s.mt = Date.now(); try { localStorage.setItem(SKEY(l), JSON.stringify(s)); } catch (e) {} if (st && lc === l) st = s; },
     resetLevel(l) { const s = loadState(l); if (!s) return; s.reset = 1; s.cur = null; try { localStorage.setItem(SKEY(l), JSON.stringify(s)); } catch (e) {} if (lc === l) st = s; },
     open(l) { window.CartaDiv.go("Learn"); translate(l); },
     // a word card's example: it becomes your next excerpt

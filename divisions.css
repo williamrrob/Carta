@@ -131,6 +131,11 @@
 .sv-set-l { flex: 1 1 auto; }
 .sv-opt { border: 0; background: none; font: inherit; min-height: 40px; padding: 0 6px; cursor: pointer; }
 .sv-set-acts { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+.sv-sync { display: flex; flex-direction: column; gap: 4px; margin-top: 10px; padding-top: 6px; }
+.sv-note { margin: 0; font-size: 14px; line-height: 1.5; }
+.sv-token { display: flex; gap: 8px; margin: 6px 0 2px; }
+.sv-token input { flex: 1 1 auto; min-width: 0; min-height: 44px; padding: 0 10px; font: inherit; font-size: 16px; box-sizing: border-box; border-radius: 0; -webkit-appearance: none; appearance: none; outline: none; }
+.sv-token .sv-btn { flex: 0 0 auto; }
 .sv-btn { flex: 1 1 0; min-height: 44px; padding: 0 10px; cursor: pointer; white-space: nowrap; }
 
 /* Explore: languages along the top (struck through = hidden), compass rose at the top right */

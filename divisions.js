@@ -362,11 +362,64 @@
       });
       acts.append(reset, upd);
       box.appendChild(acts);
+      box.appendChild(syncBox());
       d.appendChild(box);
       return d;
     }
+    // Sync: your progress in a private gist on your own GitHub account (sync.js), or one file by hand
+    let syncOpen = false, unwatch = null;
+    const ago = (t) => { const m = Math.round((Date.now() - t) / 60000); return m < 1 ? "just now" : m < 60 ? m + " min ago" : m < 1440 ? Math.round(m / 60) + " h ago" : Math.round(m / 1440) + " d ago"; };
+    function syncBox() {
+      const S = window.CartaSync, wrap = el("div", "sv-sync");
+      if (!S) return wrap;
+      const line = el("div", "sv-set"), val = el("i", "sv-set-v");
+      line.append(el("span", "sv-set-l", "Sync between devices"), val);
+      wrap.appendChild(line);
+      const say = (st) => { val.textContent = !S.on() ? "off" : st.state === "syncing" ? "syncing…" : st.state === "error" ? st.error : (S.user() ? S.user() + " · " : "") + (st.at ? "synced " + ago(st.at) : "on"); };
+      say(S.status());
+      if (unwatch) unwatch();
+      unwatch = S.watch((st) => { if (val.isConnected) say(st); });
+      const acts = el("div", "sv-set-acts");
+      if (S.on()) {
+        const now = button("sv-btn", "Sync now"); now.addEventListener("click", () => S.sync());
+        const off = button("sv-btn", "Turn off"); off.addEventListener("click", () => { S.disconnect(); draw(); });
+        acts.append(now, off);
+      } else if (!syncOpen) {
+        const on = button("sv-btn", "Set up"); on.addEventListener("click", () => { syncOpen = true; draw(); });
+        acts.appendChild(on);
+      } else {
+        const note = el("p", "sv-note");
+        note.append("Progress is kept in a private file on your GitHub account. Make a token that can only use gists, paste it here, and do the same on each device. ");
+        const a = el("a", null, "Make a token"); a.href = "https://github.com/settings/tokens/new?scopes=gist&description=Carta"; a.target = "_blank"; a.rel = "noopener";
+        note.appendChild(a);
+        const form = el("form", "sv-token"), inp = el("input");
+        inp.type = "password"; inp.placeholder = "Token"; inp.setAttribute("aria-label", "GitHub token"); inp.autocomplete = "off"; inp.spellcheck = false;
+        inp.setAttribute("autocapitalize", "none"); inp.setAttribute("autocorrect", "off");
+        const go = el("button", "sv-btn", "Connect"); go.type = "submit";
+        form.append(inp, go);
+        form.addEventListener("submit", (e) => {
+          e.preventDefault(); if (go.disabled) return;
+          go.disabled = true; go.textContent = "Connecting…";
+          S.connect(inp.value).then(() => { syncOpen = false; draw(); }, (err) => { go.disabled = false; go.textContent = "Connect"; val.textContent = (err && err.message) || "Couldn’t connect"; });
+        });
+        wrap.append(note, form);
+      }
+      // by hand: the same file, through Files / iCloud Drive
+      const exp = button("sv-btn", "Export progress"); exp.addEventListener("click", () => S.exportFile());
+      const imp = button("sv-btn", "Import progress"), pick = el("input"); pick.type = "file"; pick.accept = ".json,application/json"; pick.hidden = true;
+      imp.addEventListener("click", () => pick.click());
+      pick.addEventListener("change", () => {
+        const f = pick.files && pick.files[0]; if (!f) return;
+        f.text().then((t) => { S.importText(t); imp.textContent = "Imported"; setTimeout(draw, 1200); }).catch((err) => { imp.textContent = (err && err.message) || "Couldn’t read it"; setTimeout(() => { imp.textContent = "Import progress"; }, 2500); });
+      });
+      acts.append(exp, imp, pick);
+      wrap.appendChild(acts);
+      return wrap;
+    }
     return {
-      mount(p) { page = p; body = el("div", "dv-scroll sv"); page.appendChild(body); },
+      mount(p) { page = p; body = el("div", "dv-scroll sv"); page.appendChild(body);
+        // another device's words arrived while this page is open (not while a token is being typed)
+        window.addEventListener("carta-sync", () => { if (!page.hidden && !syncOpen) draw(); }); },
       enter() { draw(); },
       again() { draw(); },
       strip() { return { cap: "Saved", body: el("span", "dv-strip-line", last) }; },

@@ -764,6 +764,11 @@ button, input, select, textarea, .alpha-tab, .save-btn { font-family: inherit; }
 :root[data-look="priestley"] .sv-opt[aria-checked="true"] { color: var(--ink); }
 :root[data-look="priestley"] .sv-hand { font-style: normal; font-size: 17px; }
 :root[data-look="priestley"] .sv-btn { background: transparent; border: 1px solid var(--ink); color: var(--ink); font-family: var(--font); font-size: 11px; letter-spacing: .2em; text-transform: uppercase; }
+:root[data-look="priestley"] .sv-sync { border-top: 1px solid var(--muted); }
+:root[data-look="priestley"] .sv-note { color: var(--muted); font-style: italic; }
+:root[data-look="priestley"] .sv-note a { color: var(--ink); }
+:root[data-look="priestley"] .sv-token input { background: transparent; border: 0; border-bottom: 1.5px solid var(--ink); color: var(--ink); font-family: var(--font); }
+:root[data-look="priestley"] .sv-btn:disabled { opacity: .45; }
 :root[data-look="priestley"] .sv-btn:active, :root[data-look="priestley"] .sv-w:active, :root[data-look="priestley"] .sv-ex:active { background: var(--you); }
 /* pronunciation, small and grey beside the word (callout, Learn's window) */
 :root[data-look="priestley"] .co-say, :root[data-look="priestley"] .ln-co-say { color: var(--muted); font-size: 12.5px; font-style: normal; letter-spacing: .06em; margin-left: 8px; white-space: nowrap; }

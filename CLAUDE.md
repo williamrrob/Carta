@@ -126,6 +126,16 @@ translation miss after it started sticking) drop it. "Your English" translation 
 each content word's gloss stems against what you wrote; misses join your words; recent check
 scores move the level `st.z` (`adapt`). Word list: "Your words".
 
+**Sync between devices (`sync.js`, Nov 2026).** Progress lives in each browser's localStorage; `sync.js`
+keeps one merged copy in a private gist on Will's GitHub account (`carta-progress.json`), using a gist-only
+token pasted once per device (Saved → Settings → Sync; stored as `carta.sync`). It carries `carta.read.<lc>`,
+`rootwork.saved`, `rootwork.sr`, `carta.marks`, `carta.excerpts`; the open excerpt/draft stay on the device.
+Merge is per word: learn.js stamps `m` on a word's record at each change, a time (not 1) in `known` for
+"I know this"/learned, and `mt` on the state; the later change wins, lists merge three ways against
+`carta.sync.base`. Anything new that should travel must be added to `local()`/`writeLocal()`/`merge()` there,
+and code that writes progress outside learn.js's `save()` should call `CartaSync.touch()`. After a merge the
+page gets a `carta-sync` event. Export/Import progress uses the same file by hand. `test/sync.test.js`.
+
 ## Iron rules
 
 1. **Never open a `words/*.json` shard directly** (some are ~2MB). Use
